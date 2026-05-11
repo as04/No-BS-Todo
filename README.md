@@ -140,7 +140,10 @@ A `data` button in the header opens a tiny modal:
 
 - **Export · backup (.json)** — full-fidelity dump. Save this somewhere safe before you clear site data, change browsers, or let Phase 3 send your notes to Claude.
 - **Export · readable (.md)** — a single Markdown file with one section per (vertical → category) and one heading per note. Drag-and-drop it into Apple Notes / Obsidian / any text editor. Lossy by design (it's for reading), so use JSON for round-tripping.
-- **Import · restore from backup** — pick a previously-exported `.json`, see a quick "this file has X notes / Y categories" preview, and confirm before it replaces what's in your browser.
+- **Import · restore from backup** — pick a previously-exported `.json`, see a quick "this file has X notes / Y categories" preview, then choose:
+  - **merge with current** (default, non-destructive) — keeps everything you've done since the backup, adds anything missing, and resolves conflicts by taking whichever version of a note has the more recent `updatedAt`. Habit ticks union; daily history takes the higher activity per day.
+  - **replace everything** (destructive, red) — wipes current state, uses only the file. Use this when importing into a fresh browser or rolling back deliberately.
+  - **safety backup** — a checkbox (on by default) downloads a fresh `.json` of your CURRENT state right before either action runs, so a slip can't lose data.
 
 ### 🧠 What weight, streak, and the chart actually mean
 

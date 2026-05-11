@@ -1,4 +1,10 @@
-import type { ToBooState, Note, Category } from '../types';
+import type {
+  ToBooState,
+  Note,
+  Category,
+  Habit,
+  DailySnapshot,
+} from '../types';
 import { progressPercent } from './progress';
 
 /** What the exported JSON envelope looks like. */
@@ -223,6 +229,113 @@ async function normalizeIncomingState(
     localStorage.removeItem(STAGING_KEY);
     return null;
   }
+}
+
+// -----------------------------------------------------------------------------
+// Merge — non-destructive combination of current + incoming
+// -----------------------------------------------------------------------------
+
+/**
+ * Combine `current` and `incoming` without destroying user work. Rules:
+ *
+ * - **Notes**: union by id. On conflict, the one with later `updatedAt` wins.
+ *   Notes only in either source are kept.
+ * - **Categories / verticals / habits**: union by id. On conflict, `current`
+ *   wins (we don't have updatedAt on these, and the user's current naming
+ *   is probably what they want now). Habit `ticks` maps are merged (a tick
+ *   in either source counts as ticked).
+ * - **dailyHistory**: union by date. On same-date conflicts we take the
+ *   higher endPercent, the lower startPercent, the higher notesTouched,
+ *   and prefer a non-empty reflection.
+ * - **todaysCategoryIds / todaysPickedAt / streakThreshold / viewPrefs /
+ *   schemaVersion**: `current` wins (these are session-scoped preferences,
+ *   not history the user wants to recover).
+ */
+export function mergeStates(
+  current: ToBooState,
+  incoming: ToBooState
+): ToBooState {
+  return {
+    schemaVersion: current.schemaVersion,
+    verticals: mergeById(current.verticals, incoming.verticals),
+    categories: mergeById(current.categories, incoming.categories),
+    notes: mergeNotesByUpdatedAt(current.notes, incoming.notes),
+    todaysCategoryIds: current.todaysCategoryIds,
+    todaysPickedAt: current.todaysPickedAt,
+    dailyHistory: mergeDailyHistory(
+      current.dailyHistory,
+      incoming.dailyHistory
+    ),
+    streakThreshold: current.streakThreshold,
+    habits: mergeHabits(current.habits, incoming.habits),
+    viewPrefs: current.viewPrefs,
+  };
+}
+
+/** Generic id-keyed merge where `current` wins on conflict. */
+function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {
+  const seen = new Set(current.map((c) => c.id));
+  return [
+    ...current,
+    ...incoming.filter((i) => !seen.has(i.id)),
+  ];
+}
+
+/** Notes merge — newest updatedAt wins per id. */
+function mergeNotesByUpdatedAt(current: Note[], incoming: Note[]): Note[] {
+  const byId = new Map<string, Note>();
+  for (const n of current) byId.set(n.id, n);
+  for (const n of incoming) {
+    const existing = byId.get(n.id);
+    if (!existing || n.updatedAt > existing.updatedAt) byId.set(n.id, n);
+  }
+  return Array.from(byId.values());
+}
+
+/** Habits merge — current's metadata wins; ticks are unioned. */
+function mergeHabits(current: Habit[], incoming: Habit[]): Habit[] {
+  const byId = new Map<string, Habit>();
+  for (const h of current) byId.set(h.id, { ...h, ticks: { ...h.ticks } });
+  for (const inc of incoming) {
+    const existing = byId.get(inc.id);
+    if (!existing) {
+      byId.set(inc.id, { ...inc, ticks: { ...inc.ticks } });
+      continue;
+    }
+    // Union ticks — either source counts as ticked.
+    const mergedTicks = { ...existing.ticks };
+    for (const dateKey of Object.keys(inc.ticks)) {
+      if (inc.ticks[dateKey]) mergedTicks[dateKey] = true;
+    }
+    existing.ticks = mergedTicks;
+  }
+  return Array.from(byId.values());
+}
+
+/** Per-day union: max progress, max touches, prefer any non-empty reflection. */
+function mergeDailyHistory(
+  current: DailySnapshot[],
+  incoming: DailySnapshot[]
+): DailySnapshot[] {
+  const byDate = new Map<string, DailySnapshot>();
+  for (const s of current) byDate.set(s.date, { ...s });
+  for (const inc of incoming) {
+    const existing = byDate.get(inc.date);
+    if (!existing) {
+      byDate.set(inc.date, { ...inc });
+      continue;
+    }
+    byDate.set(inc.date, {
+      date: existing.date,
+      startPercent: Math.min(existing.startPercent, inc.startPercent),
+      endPercent: Math.max(existing.endPercent, inc.endPercent),
+      notesTouched: Math.max(existing.notesTouched, inc.notesTouched),
+      reflection: existing.reflection || inc.reflection,
+    });
+  }
+  return Array.from(byDate.values()).sort((a, b) =>
+    a.date < b.date ? -1 : 1
+  );
 }
 
 // -----------------------------------------------------------------------------
