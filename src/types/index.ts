@@ -30,13 +30,21 @@ export type StickyColor =
   | 'orange'
   | 'gray';
 
+export type Vertical = {
+  id: string;
+  name: string;
+};
+
 export type Category = {
   id: string;
   name: string;
   color: StickyColor;
+  verticalId: string;
 };
 
 export type ToBooState = {
+  schemaVersion: 2;
+  verticals: Vertical[];
   notes: Note[];
   categories: Category[];
   todaysCategoryIds: string[];

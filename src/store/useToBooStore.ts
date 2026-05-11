@@ -7,12 +7,17 @@ import type {
   ProgressMode,
   StickyColor,
   ToBooState,
+  Vertical,
 } from '../types';
-import { loadState, saveState } from '../lib/storage';
+import { loadState, saveState, freshVerticals } from '../lib/storage';
 import { deriveStatus } from '../lib/progress';
 
 type Actions = {
-  addCategory: (name: string, color: StickyColor) => void;
+  addVertical: (name: string) => void;
+  updateVertical: (id: string, patch: Partial<Omit<Vertical, 'id'>>) => void;
+  deleteVertical: (id: string) => void;
+
+  addCategory: (name: string, color: StickyColor, verticalId: string) => void;
   updateCategory: (id: string, patch: Partial<Omit<Category, 'id'>>) => void;
   deleteCategory: (id: string) => void;
 
@@ -37,12 +42,15 @@ type Actions = {
 type Store = ToBooState & Actions;
 
 const seed = (): ToBooState => {
+  const verticals = freshVerticals();
   const cats: Category[] = [
-    { id: nanoid(), name: 'Career', color: 'blue' },
-    { id: nanoid(), name: 'Health', color: 'green' },
-    { id: nanoid(), name: 'Reading', color: 'yellow' },
+    { id: nanoid(), name: 'Reading', color: 'yellow', verticalId: verticals[2].id },
+    { id: nanoid(), name: 'Workout', color: 'green', verticalId: verticals[1].id },
+    { id: nanoid(), name: 'Savings', color: 'blue', verticalId: verticals[0].id },
   ];
   return {
+    schemaVersion: 2,
+    verticals,
     categories: cats,
     notes: [],
     todaysCategoryIds: [],
@@ -54,8 +62,15 @@ const initial: ToBooState = loadState() ?? seed();
 
 export const useToBooStore = create<Store>((set, get) => {
   const persist = () => {
-    const { notes, categories, todaysCategoryIds, todaysPickedAt } = get();
-    saveState({ notes, categories, todaysCategoryIds, todaysPickedAt });
+    const { verticals, notes, categories, todaysCategoryIds, todaysPickedAt } = get();
+    saveState({
+      schemaVersion: 2,
+      verticals,
+      notes,
+      categories,
+      todaysCategoryIds,
+      todaysPickedAt,
+    });
   };
 
   const updateNoteInternal = (id: string, patch: Partial<Note>) => {
@@ -73,9 +88,37 @@ export const useToBooStore = create<Store>((set, get) => {
   return {
     ...initial,
 
-    addCategory: (name, color) => {
+    addVertical: (name) => {
       set((s) => ({
-        categories: [...s.categories, { id: nanoid(), name, color }],
+        verticals: [...s.verticals, { id: nanoid(), name }],
+      }));
+      persist();
+    },
+
+    updateVertical: (id, patch) => {
+      set((s) => ({
+        verticals: s.verticals.map((v) =>
+          v.id === id ? { ...v, ...patch } : v
+        ),
+      }));
+      persist();
+    },
+
+    deleteVertical: (id) => {
+      const cats = get().categories.filter((c) => c.verticalId === id);
+      const catIds = new Set(cats.map((c) => c.id));
+      set((s) => ({
+        verticals: s.verticals.filter((v) => v.id !== id),
+        categories: s.categories.filter((c) => c.verticalId !== id),
+        notes: s.notes.filter((n) => !catIds.has(n.categoryId)),
+        todaysCategoryIds: s.todaysCategoryIds.filter((cid) => !catIds.has(cid)),
+      }));
+      persist();
+    },
+
+    addCategory: (name, color, verticalId) => {
+      set((s) => ({
+        categories: [...s.categories, { id: nanoid(), name, color, verticalId }],
       }));
       persist();
     },
