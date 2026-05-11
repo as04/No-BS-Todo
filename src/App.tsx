@@ -4,6 +4,7 @@ import { MorningPicker } from './components/MorningPicker';
 import { NoteGrid } from './components/NoteGrid';
 import { AddNoteForm } from './components/AddNoteForm';
 import { CategoryManager } from './components/CategoryManager';
+import { DataModal } from './components/DataModal';
 import { EveningReview } from './components/EveningReview';
 import { HabitTracker } from './components/HabitTracker';
 import { HistoryView } from './components/HistoryView';
@@ -38,6 +39,7 @@ export default function App() {
   const [showAddNote, setShowAddNote] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
   const [showEveningReview, setShowEveningReview] = useState(false);
+  const [showData, setShowData] = useState(false);
   const [pickerDismissed, setPickerDismissed] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [tab, setTab] = useState<'notes' | 'habits' | 'done'>('notes');
@@ -116,10 +118,30 @@ export default function App() {
             label={`${todaysProgress}% — weighted average of today's notes (high-weight notes count more)`}
           />
           <div>
-            <h1 className="font-hand text-4xl leading-none">ToBoo</h1>
-            {todaysCategories.length > 0 && !showAll && (
+            <button
+              type="button"
+              onClick={() => {
+                // Logo click takes you back to the "main page" — the morning
+                // category picker. From the picker you can pick a new focus
+                // or hit "skip" to drop into whatever tab was open.
+                resetTodaysPick();
+                setPickerDismissed(false);
+                setTab('notes');
+              }}
+              className="font-hand text-4xl leading-none hover:opacity-80 transition"
+              title="back to the morning picker"
+            >
+              ToBoo
+            </button>
+            {categories.length > 0 && (
               <p className="text-xs text-ink/60 mt-1">
-                today's focus: {todaysCategories.map((c) => c.name).join(' · ')}
+                {todaysCategories.length > 0 && !showAll ? (
+                  <>today's focus: {todaysCategories.map((c) => c.name).join(' · ')}</>
+                ) : showAll ? (
+                  <>showing all categories</>
+                ) : (
+                  <>no focus picked for today</>
+                )}
                 <button
                   onClick={() => {
                     resetTodaysPick();
@@ -255,6 +277,13 @@ export default function App() {
           >
             🌙 review
           </button>
+          <button
+            onClick={() => setShowData(true)}
+            className="text-xs px-3 py-1.5 rounded-full border border-black/10 bg-white/60 hover:bg-white"
+            title="Export / import your data"
+          >
+            data
+          </button>
           {tab === 'notes' && (
             <>
               <button
@@ -298,13 +327,14 @@ export default function App() {
         {tab === 'done' && <HistoryView />}
       </main>
 
-      {(showAddNote || showCategories || showEveningReview) && (
+      {(showAddNote || showCategories || showEveningReview || showData) && (
         <div
           className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-10"
           onClick={() => {
             setShowAddNote(false);
             setShowCategories(false);
             setShowEveningReview(false);
+            setShowData(false);
           }}
         >
           <div onClick={(e) => e.stopPropagation()}>
@@ -315,6 +345,7 @@ export default function App() {
             {showEveningReview && (
               <EveningReview onClose={() => setShowEveningReview(false)} />
             )}
+            {showData && <DataModal onClose={() => setShowData(false)} />}
           </div>
         </div>
       )}
