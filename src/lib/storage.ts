@@ -73,8 +73,16 @@ function migrateV1ToV2(v1: V1State): ToBooState {
  * a user's saved v2 state predates a newer field. Never destroys data.
  */
 function backfillV2(s: ToBooState): ToBooState {
+  // Stamp completedAt on any already-done notes that pre-date the field, so
+  // the History tab can group them by day. Use updatedAt as the best guess.
+  const notes = s.notes.map((n) =>
+    n.status === 'done' && n.completedAt === undefined
+      ? { ...n, completedAt: n.updatedAt }
+      : n
+  );
   return {
     ...s,
+    notes,
     dailyHistory: s.dailyHistory ?? [],
     streakThreshold: s.streakThreshold ?? 10,
     habits: s.habits ?? seedHabits(),

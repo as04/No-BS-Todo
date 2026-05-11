@@ -174,15 +174,22 @@ export const useToBooStore = create<Store>((set, get) => {
 
   /**
    * Internal helper used by every note-mutating action. Applies `patch` to
-   * the target note, refreshes `updatedAt`, rederives `status`, and stamps
-   * today's snapshot so the daily ring and streak stay accurate.
+   * the target note, refreshes `updatedAt`, rederives `status`, maintains
+   * `completedAt` (set when transitioning to done, cleared on leaving done),
+   * and stamps today's snapshot so the daily ring and streak stay accurate.
    */
   const updateNoteInternal = (id: string, patch: Partial<Note>) => {
     set((s) => ({
       notes: s.notes.map((n) => {
         if (n.id !== id) return n;
-        const merged: Note = { ...n, ...patch, updatedAt: Date.now() };
+        const now = Date.now();
+        const merged: Note = { ...n, ...patch, updatedAt: now };
         merged.status = deriveStatus(merged.progress);
+        if (merged.status === 'done' && n.status !== 'done') {
+          merged.completedAt = now;
+        } else if (merged.status !== 'done' && n.status === 'done') {
+          merged.completedAt = undefined;
+        }
         return merged;
       }),
     }));

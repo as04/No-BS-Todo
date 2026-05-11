@@ -6,6 +6,7 @@ import { AddNoteForm } from './components/AddNoteForm';
 import { CategoryManager } from './components/CategoryManager';
 import { EveningReview } from './components/EveningReview';
 import { HabitTracker } from './components/HabitTracker';
+import { HistoryView } from './components/HistoryView';
 import { FilterBar } from './components/FilterBar';
 import { ProgressRing } from './components/ProgressRing';
 import { sortByInProgressFirst, weightedProgress } from './lib/progress';
@@ -38,7 +39,7 @@ export default function App() {
   const [showEveningReview, setShowEveningReview] = useState(false);
   const [pickerDismissed, setPickerDismissed] = useState(false);
   const [showAll, setShowAll] = useState(false);
-  const [tab, setTab] = useState<'notes' | 'habits'>('notes');
+  const [tab, setTab] = useState<'notes' | 'habits' | 'history'>('notes');
   const [showFilter, setShowFilter] = useState(false);
   const [filterCategoryIds, setFilterCategoryIds] = useState<Set<string>>(
     new Set()
@@ -145,6 +146,14 @@ export default function App() {
               }`}
             >
               habits
+            </button>
+            <button
+              onClick={() => setTab('history')}
+              className={`text-xs px-3 py-1 rounded-full transition ${
+                tab === 'history' ? 'bg-ink text-paper' : 'text-ink/70 hover:text-ink'
+              }`}
+            >
+              history
             </button>
           </div>
           {streak > 0 && (
@@ -263,7 +272,7 @@ export default function App() {
       )}
 
       <main className="pb-24 max-w-6xl mx-auto pt-2">
-        {tab === 'notes' ? (
+        {tab === 'notes' && (
           <div className="px-6">
             <NoteGrid
               notes={visibleNotes}
@@ -271,9 +280,9 @@ export default function App() {
               view={viewPrefs.view}
             />
           </div>
-        ) : (
-          <HabitTracker />
         )}
+        {tab === 'habits' && <HabitTracker />}
+        {tab === 'history' && <HistoryView />}
       </main>
 
       {(showAddNote || showCategories || showEveningReview) && (

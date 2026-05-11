@@ -41,6 +41,12 @@ export type Note = {
   weight: number;
   createdAt: number;
   updatedAt: number;
+  /**
+   * Set the moment the note first reaches 100% (status === 'done'); cleared
+   * if progress drops back below 100%. Used by the History tab to group
+   * completed notes by the day they were finished.
+   */
+  completedAt?: number;
 };
 
 /** Pastel palette options for category sticky-note tinting. */
