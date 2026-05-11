@@ -1,7 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useToBooStore } from '../store/useToBooStore';
 import { localDateKey } from '../lib/dates';
 import { COLOR_DOT } from '../lib/colors';
+import { dailyBars, weeklyBars } from '../lib/charts';
+import { SimpleBarChart } from './SimpleBarChart';
 import type { Note, DailySnapshot } from '../types';
 
 type DayBucket = {
@@ -24,6 +26,16 @@ export function HistoryView() {
   const dailyHistory = useToBooStore((s) => s.dailyHistory);
   const notes = useToBooStore((s) => s.notes);
   const categories = useToBooStore((s) => s.categories);
+  const streakThreshold = useToBooStore((s) => s.streakThreshold);
+  const [chartMode, setChartMode] = useState<'daily' | 'weekly'>('daily');
+
+  const bars = useMemo(
+    () =>
+      chartMode === 'daily'
+        ? dailyBars(dailyHistory, 30)
+        : weeklyBars(dailyHistory, 12),
+    [dailyHistory, chartMode]
+  );
 
   const catById = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
@@ -47,29 +59,68 @@ export function HistoryView() {
     );
   }, [dailyHistory, notes]);
 
-  if (buckets.length === 0) {
-    return (
-      <div className="max-w-3xl mx-auto px-6 text-center py-20 text-ink/50">
-        <p className="font-hand text-2xl">nothing here yet</p>
-        <p className="text-sm mt-1">
-          finish a task or save an evening reflection — they'll show up here.
-        </p>
-      </div>
-    );
-  }
+  const hasAnyHistory = dailyHistory.length > 0;
 
   return (
     <div className="max-w-3xl mx-auto px-6 pb-24 space-y-4">
-      <header>
-        <h2 className="font-hand text-3xl">history</h2>
-        <p className="text-xs text-ink/60 mt-1">
-          past reflections and what you finished, newest first
-        </p>
+      <header className="flex items-baseline justify-between gap-3">
+        <div>
+          <h2 className="font-hand text-3xl">history</h2>
+          <p className="text-xs text-ink/60 mt-1">
+            past reflections and what you finished, newest first
+          </p>
+        </div>
       </header>
 
-      {buckets.map((b) => (
-        <DayCard key={b.date} bucket={b} catById={catById} />
-      ))}
+      {hasAnyHistory && (
+        <div className="bg-white/70 rounded-lg p-4 shadow-sticky space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-hand text-lg leading-none">
+              progress over time
+            </h3>
+            <div className="inline-flex bg-paper/70 rounded-full p-0.5 border border-black/10">
+              <button
+                onClick={() => setChartMode('daily')}
+                className={`text-xs px-3 py-1 rounded-full transition ${
+                  chartMode === 'daily'
+                    ? 'bg-ink text-paper'
+                    : 'text-ink/70 hover:text-ink'
+                }`}
+              >
+                daily · 30d
+              </button>
+              <button
+                onClick={() => setChartMode('weekly')}
+                className={`text-xs px-3 py-1 rounded-full transition ${
+                  chartMode === 'weekly'
+                    ? 'bg-ink text-paper'
+                    : 'text-ink/70 hover:text-ink'
+                }`}
+              >
+                weekly · 12w
+              </button>
+            </div>
+          </div>
+          <SimpleBarChart bars={bars} threshold={streakThreshold} />
+          <p className="text-xs text-ink/50">
+            dashed line: streak threshold ({streakThreshold}%). dark bars are
+            days/weeks at or above it.
+          </p>
+        </div>
+      )}
+
+      {buckets.length === 0 ? (
+        <div className="text-center py-12 text-ink/50">
+          <p className="font-hand text-xl">no entries yet</p>
+          <p className="text-sm mt-1">
+            finish a task or save an evening reflection — they'll show up here.
+          </p>
+        </div>
+      ) : (
+        buckets.map((b) => (
+          <DayCard key={b.date} bucket={b} catById={catById} />
+        ))
+      )}
     </div>
   );
 }
