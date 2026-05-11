@@ -120,15 +120,28 @@ export default function App() {
           <div>
             <button
               type="button"
-              onClick={() => setTab('notes')}
+              onClick={() => {
+                // Logo click takes you back to the "main page" — the morning
+                // category picker. From the picker you can pick a new focus
+                // or hit "skip" to drop into whatever tab was open.
+                resetTodaysPick();
+                setPickerDismissed(false);
+                setTab('notes');
+              }}
               className="font-hand text-4xl leading-none hover:opacity-80 transition"
-              title="back to notes"
+              title="back to the morning picker"
             >
               ToBoo
             </button>
-            {todaysCategories.length > 0 && !showAll && (
+            {categories.length > 0 && (
               <p className="text-xs text-ink/60 mt-1">
-                today's focus: {todaysCategories.map((c) => c.name).join(' · ')}
+                {todaysCategories.length > 0 && !showAll ? (
+                  <>today's focus: {todaysCategories.map((c) => c.name).join(' · ')}</>
+                ) : showAll ? (
+                  <>showing all categories</>
+                ) : (
+                  <>no focus picked for today</>
+                )}
                 <button
                   onClick={() => {
                     resetTodaysPick();
