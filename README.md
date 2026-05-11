@@ -134,6 +134,14 @@ Everything lives in your browser's `localStorage` under `toboo:v1`.
 - Open the same browser, see the same notes
 - If you ever want multi-device sync, it's an opt-in Phase-5 thing — not the default
 
+### 📦 Export / import
+
+A `data` button in the header opens a tiny modal:
+
+- **Export · backup (.json)** — full-fidelity dump. Save this somewhere safe before you clear site data, change browsers, or let Phase 3 send your notes to Claude.
+- **Export · readable (.md)** — a single Markdown file with one section per (vertical → category) and one heading per note. Drag-and-drop it into Apple Notes / Obsidian / any text editor. Lossy by design (it's for reading), so use JSON for round-tripping.
+- **Import · restore from backup** — pick a previously-exported `.json`, see a quick "this file has X notes / Y categories" preview, and confirm before it replaces what's in your browser.
+
 ### 🧠 What weight, streak, and the chart actually mean
 
 Three views, three different questions, no redundancy:

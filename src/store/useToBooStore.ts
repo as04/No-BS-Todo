@@ -79,6 +79,13 @@ type Actions = {
 
   /** Merge partial UI preferences (view, minimalist, minN). */
   setViewPrefs: (patch: Partial<ToBooState['viewPrefs']>) => void;
+
+  /**
+   * Replace the entire state in one shot. Used by JSON import to swap the
+   * user's data after they confirm. Caller is responsible for showing a
+   * confirmation dialog — this action does not warn.
+   */
+  replaceState: (next: ToBooState) => void;
 };
 
 type Store = ToBooState & Actions;
@@ -413,6 +420,11 @@ export const useToBooStore = create<Store>((set, get) => {
 
     setViewPrefs: (patch) => {
       set((s) => ({ viewPrefs: { ...s.viewPrefs, ...patch } }));
+      persist();
+    },
+
+    replaceState: (next) => {
+      set(() => ({ ...next }));
       persist();
     },
   };
