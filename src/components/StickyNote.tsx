@@ -6,6 +6,7 @@ import { COLOR_BG, COLOR_DOT } from '../lib/colors';
 import { ProgressBar } from './ProgressBar';
 import { BulkProgressInput } from './BulkProgressInput';
 import { ChecklistEditor } from './ChecklistEditor';
+import { WeightPicker } from './WeightPicker';
 
 type Props = {
   note: Note;
@@ -78,7 +79,12 @@ export function StickyNote({ note, category }: Props) {
             />
           )}
 
-          <div className="flex justify-end pt-1">
+          <div className="flex items-center justify-between pt-1">
+            <WeightPicker
+              value={note.weight ?? 3}
+              onChange={(w) => updateNote(note.id, { weight: w })}
+              compact
+            />
             <button
               type="button"
               onClick={() => {

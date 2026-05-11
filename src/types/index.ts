@@ -17,6 +17,7 @@ export type Note = {
   categoryId: string;
   progress: ProgressMode;
   status: NoteStatus;
+  weight: number; // 1..5 — drives the daily progress ring
   createdAt: number;
   updatedAt: number;
 };

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useToBooStore } from '../store/useToBooStore';
 import type { ProgressMode } from '../types';
+import { WeightPicker } from './WeightPicker';
 
 type Props = { onClose: () => void };
 
@@ -13,6 +14,7 @@ export function AddNoteForm({ onClose }: Props) {
   const [mode, setMode] = useState<'checklist' | 'bulk'>('checklist');
   const [unitLabel, setUnitLabel] = useState('chapter');
   const [total, setTotal] = useState(10);
+  const [weight, setWeight] = useState(3);
 
   const canSubmit = title.trim().length > 0 && categoryId;
 
@@ -22,7 +24,7 @@ export function AddNoteForm({ onClose }: Props) {
       mode === 'checklist'
         ? { kind: 'checklist', items: [] }
         : { kind: 'bulk', unitLabel, total, current: 0 };
-    addNote({ title: title.trim(), categoryId, progress });
+    addNote({ title: title.trim(), categoryId, progress, weight });
     onClose();
   };
 
@@ -126,6 +128,11 @@ export function AddNoteForm({ onClose }: Props) {
           </div>
         </div>
       )}
+
+      <div className="space-y-1.5">
+        <label className="text-xs text-ink/60">Weight</label>
+        <WeightPicker value={weight} onChange={setWeight} />
+      </div>
 
       <div className="flex justify-end gap-2 pt-2">
         <button

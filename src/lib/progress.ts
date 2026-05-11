@@ -25,3 +25,16 @@ export function sortByInProgressFirst(notes: Note[]): Note[] {
     return b.updatedAt - a.updatedAt;
   });
 }
+
+export function weightedProgress(notes: Note[]): number {
+  if (notes.length === 0) return 0;
+  let num = 0;
+  let den = 0;
+  for (const n of notes) {
+    const w = Math.max(1, Math.min(5, n.weight ?? 3));
+    num += progressPercent(n.progress) * w;
+    den += w;
+  }
+  if (den === 0) return 0;
+  return Math.round(num / den);
+}

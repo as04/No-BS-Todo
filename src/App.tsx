@@ -4,7 +4,8 @@ import { MorningPicker } from './components/MorningPicker';
 import { NoteGrid } from './components/NoteGrid';
 import { AddNoteForm } from './components/AddNoteForm';
 import { CategoryManager } from './components/CategoryManager';
-import { sortByInProgressFirst } from './lib/progress';
+import { ProgressRing } from './components/ProgressRing';
+import { sortByInProgressFirst, weightedProgress } from './lib/progress';
 
 export default function App() {
   const notes = useToBooStore((s) => s.notes);
@@ -24,14 +25,21 @@ export default function App() {
   const showPicker =
     !pickedToday && !pickerDismissed && categories.length > 0;
 
-  const visibleNotes = useMemo(() => {
-    const filtered =
-      showAll || todaysCategoryIds.length === 0
+  const todaysNotes = useMemo(
+    () =>
+      todaysCategoryIds.length === 0
         ? notes
-        : notes.filter((n) => todaysCategoryIds.includes(n.categoryId));
+        : notes.filter((n) => todaysCategoryIds.includes(n.categoryId)),
+    [notes, todaysCategoryIds]
+  );
+
+  const todaysProgress = useMemo(() => weightedProgress(todaysNotes), [todaysNotes]);
+
+  const visibleNotes = useMemo(() => {
+    const filtered = showAll ? notes : todaysNotes;
     const active = filtered.filter((n) => n.status !== 'done');
     return sortByInProgressFirst(active);
-  }, [notes, todaysCategoryIds, showAll]);
+  }, [notes, todaysNotes, showAll]);
 
   if (showPicker) {
     return <MorningPicker onDone={() => setPickerDismissed(true)} />;
@@ -44,22 +52,25 @@ export default function App() {
   return (
     <div className="min-h-screen">
       <header className="px-6 pt-8 pb-4 flex items-center justify-between max-w-6xl mx-auto">
-        <div>
-          <h1 className="font-hand text-4xl">ToBoo</h1>
-          {todaysCategories.length > 0 && !showAll && (
-            <p className="text-xs text-ink/60 mt-1">
-              today's focus: {todaysCategories.map((c) => c.name).join(' · ')}
-              <button
-                onClick={() => {
-                  resetTodaysPick();
-                  setPickerDismissed(false);
-                }}
-                className="ml-2 underline hover:text-ink"
-              >
-                change
-              </button>
-            </p>
-          )}
+        <div className="flex items-center gap-4">
+          <ProgressRing percent={todaysProgress} label={`${todaysProgress}% across today's notes`} />
+          <div>
+            <h1 className="font-hand text-4xl leading-none">ToBoo</h1>
+            {todaysCategories.length > 0 && !showAll && (
+              <p className="text-xs text-ink/60 mt-1">
+                today's focus: {todaysCategories.map((c) => c.name).join(' · ')}
+                <button
+                  onClick={() => {
+                    resetTodaysPick();
+                    setPickerDismissed(false);
+                  }}
+                  className="ml-2 underline hover:text-ink"
+                >
+                  change
+                </button>
+              </p>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button

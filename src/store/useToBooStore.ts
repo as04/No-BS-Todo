@@ -26,6 +26,7 @@ type Actions = {
     categoryId: string;
     body?: string;
     progress: ProgressMode;
+    weight?: number;
   }) => void;
   updateNote: (id: string, patch: Partial<Omit<Note, 'id' | 'createdAt'>>) => void;
   deleteNote: (id: string) => void;
@@ -141,7 +142,7 @@ export const useToBooStore = create<Store>((set, get) => {
       persist();
     },
 
-    addNote: ({ title, categoryId, body, progress }) => {
+    addNote: ({ title, categoryId, body, progress, weight }) => {
       const now = Date.now();
       const note: Note = {
         id: nanoid(),
@@ -150,6 +151,7 @@ export const useToBooStore = create<Store>((set, get) => {
         categoryId,
         progress,
         status: deriveStatus(progress),
+        weight: weight ?? 3,
         createdAt: now,
         updatedAt: now,
       };

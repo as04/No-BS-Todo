@@ -25,7 +25,7 @@ function migrateV1ToV2(v1: V1State): ToBooState {
   return {
     schemaVersion: 2,
     verticals: DEFAULT_VERTICALS,
-    notes: v1.notes,
+    notes: v1.notes.map((n) => ({ ...n, weight: (n as { weight?: number }).weight ?? 3 })),
     categories: v1.categories.map((c) => ({ ...c, verticalId: fallbackVerticalId })),
     todaysCategoryIds: v1.todaysCategoryIds,
     todaysPickedAt: v1.todaysPickedAt,
