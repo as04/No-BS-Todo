@@ -95,10 +95,15 @@ fully editable:
 
 Where past you lives. Three things stacked, newest first:
 
-- **how busy you've been** — a bar chart of note interactions per day
-  (or weekly totals). Not the same as your % completion (the ring does
-  that) or your streak (the chip does that). This is pure activity:
-  did you poke at your notes today?
+- **how busy you've been** — a GitHub-contributions-style **calendar
+  heatmap** of the last 52 weeks. Each square is one day, darker =
+  more note interactions. The grid stays legible from day one (sparse
+  data ≠ broken chart), and as you use the app the pattern starts
+  filling in. Header shows running totals (`X updates · Y active
+  days`). Hover any square for the exact count.
+  - This is **not** the same metric as the ring (today's %) or the
+    streak (the chain). The heatmap is pure activity: were you here
+    on a given day?
 - **per-day cards** with that day's start→end %, your reflection (if
   you wrote one), and **every note you finished that day**
 - empty state that doesn't shame you
@@ -135,7 +140,7 @@ Three views, three different questions, no redundancy:
 
 - **Ring** → "how complete is today, right now"
 - **🔥 streak** → "am I showing up every day"
-- **Done-tab chart** → "how busy was I day-over-day" (count of interactions, not %)
+- **Done-tab heatmap** → "what's the long-game pattern of when I show up" (count of interactions per day, calendar grid)
 
 You don't have to look at any of them. They're there if you like that
 kind of thing.
@@ -181,7 +186,7 @@ localStorage.removeItem('toboo:v1');
 - **Tailwind CSS** + a hand-written `Patrick Hand` font for the sticky feel
 - **Zustand** for state (one store, no Redux)
 - **nanoid** for IDs
-- **inline SVG** for charts (no chart lib yet — Recharts joins in Phase 4)
+- **inline SVG** for the calendar heatmap (no chart lib yet — Recharts joins in Phase 4 if/when we add multi-series stuff)
 - No backend, no auth, no analytics
 
 ---
