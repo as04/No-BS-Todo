@@ -7,6 +7,7 @@ import { ProgressBar } from './ProgressBar';
 import { BulkProgressInput } from './BulkProgressInput';
 import { ChecklistEditor } from './ChecklistEditor';
 import { WeightPicker } from './WeightPicker';
+import { CategoryPicker } from './CategoryPicker';
 
 type Props = {
   note: Note;
@@ -70,6 +71,15 @@ export function NoteListItem({ note, category }: Props) {
               onChange={(c) => setBulkCurrent(note.id, c)}
             />
           )}
+
+          <div>
+            <label className="text-xs text-ink/60 block mb-1">category</label>
+            <CategoryPicker
+              value={note.categoryId}
+              onChange={(id) => updateNote(note.id, { categoryId: id })}
+              size="sm"
+            />
+          </div>
 
           <div className="flex items-center justify-between">
             <WeightPicker
