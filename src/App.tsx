@@ -31,6 +31,9 @@ export default function App() {
   const pickedToday =
     todaysPickedAt != null && isSameLocalDay(todaysPickedAt, Date.now());
 
+  // With zero categories the picker has nothing to offer, so skip it and let
+  // the user go straight to creating notes (the +note form now supports
+  // inline category creation and an uncategorized fallback).
   const showPicker =
     !pickedToday && !pickerDismissed && categories.length > 0;
 
@@ -38,7 +41,9 @@ export default function App() {
     () =>
       todaysCategoryIds.length === 0
         ? notes
-        : notes.filter((n) => todaysCategoryIds.includes(n.categoryId)),
+        : notes.filter(
+            (n) => n.categoryId !== null && todaysCategoryIds.includes(n.categoryId)
+          ),
     [notes, todaysCategoryIds]
   );
 

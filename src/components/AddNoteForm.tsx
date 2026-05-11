@@ -1,22 +1,65 @@
 import { useState } from 'react';
 import { useToBooStore } from '../store/useToBooStore';
-import type { ProgressMode } from '../types';
+import type { ProgressMode, StickyColor } from '../types';
 import { WeightPicker } from './WeightPicker';
+import { ALL_COLORS, COLOR_DOT } from '../lib/colors';
 
 type Props = { onClose: () => void };
 
+const NONE_VALUE = '__none__';
+const NEW_VALUE = '__new__';
+
+/**
+ * Modal for creating a new note. Supports:
+ *  - picking an existing category, leaving as (none), or creating a new
+ *    category inline (name + color + vertical) without leaving the form
+ *  - selecting a progress mode (checklist OR bulk units with a unit label)
+ *  - assigning a weight 1..5
+ */
 export function AddNoteForm({ onClose }: Props) {
   const categories = useToBooStore((s) => s.categories);
+  const verticals = useToBooStore((s) => s.verticals);
   const addNote = useToBooStore((s) => s.addNote);
+  const addCategory = useToBooStore((s) => s.addCategory);
 
   const [title, setTitle] = useState('');
-  const [categoryId, setCategoryId] = useState(categories[0]?.id ?? '');
+  const [categoryValue, setCategoryValue] = useState<string>(
+    categories[0]?.id ?? NONE_VALUE
+  );
   const [mode, setMode] = useState<'checklist' | 'bulk'>('checklist');
   const [unitLabel, setUnitLabel] = useState('chapter');
   const [total, setTotal] = useState(10);
   const [weight, setWeight] = useState(3);
 
-  const canSubmit = title.trim().length > 0 && categoryId;
+  // Inline new-category state.
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatColor, setNewCatColor] = useState<StickyColor>('yellow');
+  const [newCatVerticalId, setNewCatVerticalId] = useState(
+    verticals[0]?.id ?? ''
+  );
+
+  const isCreatingCategory = categoryValue === NEW_VALUE;
+  const newCatReady =
+    isCreatingCategory && newCatName.trim().length > 0 && newCatVerticalId;
+  const canSubmit =
+    title.trim().length > 0 &&
+    (categoryValue !== NEW_VALUE || newCatReady);
+
+  /** Resolve the final categoryId. If user is creating a new category, do it now. */
+  const resolveCategoryId = (): string | null => {
+    if (categoryValue === NONE_VALUE) return null;
+    if (categoryValue === NEW_VALUE) {
+      const t = newCatName.trim();
+      if (!t || !newCatVerticalId) return null;
+      addCategory(t, newCatColor, newCatVerticalId);
+      // addCategory generates the id internally; grab the freshest one.
+      const created = useToBooStore.getState().categories.find(
+        (c) => c.name === t && c.verticalId === newCatVerticalId
+      );
+      return created?.id ?? null;
+    }
+    return categoryValue;
+  };
 
   const submit = () => {
     if (!canSubmit) return;
@@ -24,31 +67,17 @@ export function AddNoteForm({ onClose }: Props) {
       mode === 'checklist'
         ? { kind: 'checklist', items: [] }
         : { kind: 'bulk', unitLabel, total, current: 0 };
-    addNote({ title: title.trim(), categoryId, progress, weight });
+    addNote({
+      title: title.trim(),
+      categoryId: resolveCategoryId(),
+      progress,
+      weight,
+    });
     onClose();
   };
 
-  if (categories.length === 0) {
-    return (
-      <div className="bg-white rounded-lg p-6 shadow-lg max-w-md w-full">
-        <p className="text-sm text-ink/70">
-          Add a category first before creating a note.
-        </p>
-        <div className="text-right mt-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-sm underline"
-          >
-            close
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-white rounded-lg p-6 shadow-lg max-w-md w-full space-y-4">
+    <div className="bg-white rounded-lg p-6 shadow-lg max-w-md w-full space-y-4 max-h-[85vh] overflow-y-auto">
       <h2 className="font-hand text-2xl">new note</h2>
 
       <div className="space-y-1.5">
@@ -65,8 +94,8 @@ export function AddNoteForm({ onClose }: Props) {
       <div className="space-y-1.5">
         <label className="text-xs text-ink/60">Category</label>
         <select
-          value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)}
+          value={categoryValue}
+          onChange={(e) => setCategoryValue(e.target.value)}
           className="w-full bg-paper rounded px-3 py-2 border border-black/10"
         >
           {categories.map((c) => (
@@ -74,8 +103,48 @@ export function AddNoteForm({ onClose }: Props) {
               {c.name}
             </option>
           ))}
+          <option value={NONE_VALUE}>(uncategorized)</option>
+          <option value={NEW_VALUE}>+ new category…</option>
         </select>
       </div>
+
+      {isCreatingCategory && (
+        <div className="rounded border border-dashed border-black/20 bg-paper/60 p-3 space-y-2">
+          <p className="text-xs text-ink/60">create a new category</p>
+          <input
+            value={newCatName}
+            onChange={(e) => setNewCatName(e.target.value)}
+            placeholder="e.g. Brilliant"
+            className="w-full bg-white rounded px-2 py-1 text-sm border border-black/10"
+          />
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex gap-1">
+              {ALL_COLORS.map((col) => (
+                <button
+                  key={col}
+                  type="button"
+                  onClick={() => setNewCatColor(col)}
+                  className={`w-4 h-4 rounded-full ${COLOR_DOT[col]} ${
+                    newCatColor === col ? 'ring-2 ring-ink' : ''
+                  }`}
+                  aria-label={`pick ${col}`}
+                />
+              ))}
+            </div>
+            <select
+              value={newCatVerticalId}
+              onChange={(e) => setNewCatVerticalId(e.target.value)}
+              className="text-xs bg-white rounded px-2 py-1 border border-black/10 ml-auto"
+            >
+              {verticals.map((vv) => (
+                <option key={vv.id} value={vv.id}>
+                  {vv.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <label className="text-xs text-ink/60">Progress mode</label>

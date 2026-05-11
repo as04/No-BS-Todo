@@ -35,8 +35,10 @@ export function EveningReview({ onClose }: Props) {
     setTimeout(() => setSaved(false), 1500);
   };
 
-  const catName = (id: string) =>
-    categories.find((c) => c.id === id)?.name ?? '—';
+  const catName = (id: string | null): string => {
+    if (!id) return 'uncategorized';
+    return categories.find((c) => c.id === id)?.name ?? '—';
+  };
 
   const delta = snap ? snap.endPercent - snap.startPercent : 0;
 

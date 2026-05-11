@@ -35,9 +35,9 @@ export function NoteListItem({ note, category }: Props) {
         <span className={`w-2.5 h-2.5 rounded-full ${colorDot}`} />
         <span className="flex-1 min-w-0">
           <span className="block truncate text-sm">{note.title}</span>
-          {category && (
-            <span className="text-xs text-ink/40">{category.name}</span>
-          )}
+          <span className="text-xs text-ink/40">
+            {category ? category.name : 'uncategorized'}
+          </span>
         </span>
         <span className="w-32 hidden sm:block">
           <ProgressBar percent={pct} />

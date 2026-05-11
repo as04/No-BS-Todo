@@ -37,14 +37,16 @@ export function StickyNote({ note, category }: Props) {
       >
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-hand text-xl leading-tight pr-2">{note.title}</h3>
-          {category && (
+          <span
+            className="inline-flex items-center gap-1.5 text-xs whitespace-nowrap px-2 py-0.5 rounded-full bg-white/60"
+          >
             <span
-              className={`inline-flex items-center gap-1.5 text-xs whitespace-nowrap px-2 py-0.5 rounded-full bg-white/60`}
-            >
-              <span className={`w-2 h-2 rounded-full ${COLOR_DOT[category.color]}`} />
-              {category.name}
-            </span>
-          )}
+              className={`w-2 h-2 rounded-full ${
+                category ? COLOR_DOT[category.color] : 'bg-gray-300'
+              }`}
+            />
+            {category ? category.name : 'uncategorized'}
+          </span>
         </div>
 
         <div className="mt-3 flex items-center gap-2">

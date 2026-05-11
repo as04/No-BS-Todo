@@ -63,7 +63,7 @@ export function CategoryManager({ onClose }: Props) {
                   onClick={() => {
                     if (
                       confirm(
-                        `Delete "${v.name}" vertical and ALL its categories + notes?`
+                        `Delete "${v.name}" vertical and its categories? Notes survive as uncategorized.`
                       )
                     )
                       deleteVertical(v.id);
@@ -98,7 +98,7 @@ export function CategoryManager({ onClose }: Props) {
                         onClick={() => {
                           if (
                             confirm(
-                              `Delete "${c.name}"? Notes in this category will also be deleted.`
+                              `Delete "${c.name}"? Its notes survive as uncategorized.`
                             )
                           )
                             deleteCategory(c.id);

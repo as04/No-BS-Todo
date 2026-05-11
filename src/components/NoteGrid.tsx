@@ -20,11 +20,13 @@ export function NoteGrid({ notes, categories, view }: Props) {
     );
   }
 
+  const lookup = (id: string | null) => (id ? byId.get(id) : undefined);
+
   if (view === 'list') {
     return (
       <div className="bg-white/60 rounded-lg shadow-sticky overflow-hidden">
         {notes.map((n) => (
-          <NoteListItem key={n.id} note={n} category={byId.get(n.categoryId)} />
+          <NoteListItem key={n.id} note={n} category={lookup(n.categoryId)} />
         ))}
       </div>
     );
@@ -33,7 +35,7 @@ export function NoteGrid({ notes, categories, view }: Props) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {notes.map((n) => (
-        <StickyNote key={n.id} note={n} category={byId.get(n.categoryId)} />
+        <StickyNote key={n.id} note={n} category={lookup(n.categoryId)} />
       ))}
     </div>
   );

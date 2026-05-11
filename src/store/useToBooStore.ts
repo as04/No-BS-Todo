@@ -30,7 +30,7 @@ type Actions = {
 
   addNote: (input: {
     title: string;
-    categoryId: string;
+    categoryId: string | null;
     body?: string;
     progress: ProgressMode;
     weight?: number;
@@ -106,10 +106,15 @@ export const useToBooStore = create<Store>((set, get) => {
     });
   };
 
+  /** Notes that belong to today's picked categories (uncategorized ones excluded). */
   const todaysNotesFor = (state: ToBooState): Note[] =>
     state.todaysCategoryIds.length === 0
       ? state.notes
-      : state.notes.filter((n) => state.todaysCategoryIds.includes(n.categoryId));
+      : state.notes.filter(
+          (n) =>
+            n.categoryId !== null &&
+            state.todaysCategoryIds.includes(n.categoryId)
+        );
 
   const touchTodaysSnapshot = () => {
     set((s) => {
@@ -177,10 +182,14 @@ export const useToBooStore = create<Store>((set, get) => {
     deleteVertical: (id) => {
       const cats = get().categories.filter((c) => c.verticalId === id);
       const catIds = new Set(cats.map((c) => c.id));
+      // Notes lose their category but survive (become uncategorized) so the
+      // user doesn't lose work when reorganising verticals.
       set((s) => ({
         verticals: s.verticals.filter((v) => v.id !== id),
         categories: s.categories.filter((c) => c.verticalId !== id),
-        notes: s.notes.filter((n) => !catIds.has(n.categoryId)),
+        notes: s.notes.map((n) =>
+          n.categoryId && catIds.has(n.categoryId) ? { ...n, categoryId: null } : n
+        ),
         todaysCategoryIds: s.todaysCategoryIds.filter((cid) => !catIds.has(cid)),
       }));
       persist();
@@ -203,9 +212,12 @@ export const useToBooStore = create<Store>((set, get) => {
     },
 
     deleteCategory: (id) => {
+      // Notes in this category survive as uncategorized rather than being deleted.
       set((s) => ({
         categories: s.categories.filter((c) => c.id !== id),
-        notes: s.notes.filter((n) => n.categoryId !== id),
+        notes: s.notes.map((n) =>
+          n.categoryId === id ? { ...n, categoryId: null } : n
+        ),
         todaysCategoryIds: s.todaysCategoryIds.filter((cid) => cid !== id),
       }));
       persist();

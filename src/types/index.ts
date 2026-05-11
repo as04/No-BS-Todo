@@ -10,14 +10,20 @@ export type ProgressMode =
 
 export type NoteStatus = 'todo' | 'doing' | 'done';
 
+/**
+ * A single sticky note. `categoryId` may be `null` for an uncategorized note
+ * (renders with a neutral gray dot and is excluded from today's-focus filtering
+ * unless "show all" is on).
+ */
 export type Note = {
   id: string;
   title: string;
   body?: string;
-  categoryId: string;
+  categoryId: string | null;
   progress: ProgressMode;
   status: NoteStatus;
-  weight: number; // 1..5 — drives the daily progress ring
+  /** 1..5 — pulls the daily progress ring proportionally. */
+  weight: number;
   createdAt: number;
   updatedAt: number;
 };
