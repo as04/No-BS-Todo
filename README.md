@@ -23,6 +23,9 @@ Most todo apps wage psychological warfare. ToBoo just wants you to:
 That's it. Everything else is an optional flourish that you can ignore
 until you want it.
 
+> _Stuck somewhere in the app?_ Click the **ToBoo** wordmark top-left to
+> jump back to the notes grid from any tab.
+
 ---
 
 ## What's in the box
@@ -144,6 +147,10 @@ A `data` button in the header opens a tiny modal:
   - **merge with current** (default, non-destructive) — keeps everything you've done since the backup, adds anything missing, and resolves conflicts by taking whichever version of a note has the more recent `updatedAt`. Habit ticks union; daily history takes the higher activity per day.
   - **replace everything** (destructive, red) — wipes current state, uses only the file. Use this when importing into a fresh browser or rolling back deliberately.
   - **safety backup** — a checkbox (on by default) downloads a fresh `.json` of your CURRENT state right before either action runs, so a slip can't lose data.
+
+  Smart-dedupe: verticals and categories are matched by **id first, then by name** — so importing a backup made from a previously-seeded ToBoo into a freshly-seeded one doesn't duplicate the default "Career / Health / Financial" verticals. Notes pointing at the duplicate categories get re-pointed to your existing ones automatically.
+
+  After the merge runs, a short summary tells you exactly what changed: `+3 notes, +1 category, 2 notes re-pointed to your existing categories`. No silent surprises.
 
 ### 🧠 What weight, streak, and the chart actually mean
 
