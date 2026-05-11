@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useToBooStore } from '../store/useToBooStore';
 import { localDateKey } from '../lib/dates';
 import { COLOR_DOT } from '../lib/colors';
-import { dailyBars, weeklyBars } from '../lib/charts';
+import { dailyEffortBars, weeklyEffortBars } from '../lib/charts';
 import { SimpleBarChart } from './SimpleBarChart';
 import type { Note, DailySnapshot } from '../types';
 
@@ -26,16 +26,22 @@ export function HistoryView() {
   const dailyHistory = useToBooStore((s) => s.dailyHistory);
   const notes = useToBooStore((s) => s.notes);
   const categories = useToBooStore((s) => s.categories);
-  const streakThreshold = useToBooStore((s) => s.streakThreshold);
   const [chartMode, setChartMode] = useState<'daily' | 'weekly'>('daily');
 
   const bars = useMemo(
     () =>
       chartMode === 'daily'
-        ? dailyBars(dailyHistory, 30)
-        : weeklyBars(dailyHistory, 12),
+        ? dailyEffortBars(dailyHistory, 30)
+        : weeklyEffortBars(dailyHistory, 12),
     [dailyHistory, chartMode]
   );
+
+  // Scale the bars to the visible max, with a small floor so an idle period
+  // doesn't make a single update fill the whole chart.
+  const maxValue = useMemo(() => {
+    const m = bars.reduce((acc, b) => Math.max(acc, b.value), 0);
+    return Math.max(m, chartMode === 'daily' ? 3 : 10);
+  }, [bars, chartMode]);
 
   const catById = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
@@ -65,9 +71,10 @@ export function HistoryView() {
     <div className="max-w-3xl mx-auto px-6 pb-24 space-y-4">
       <header className="flex items-baseline justify-between gap-3">
         <div>
-          <h2 className="font-hand text-3xl">history</h2>
+          <h2 className="font-hand text-3xl">what you got done</h2>
           <p className="text-xs text-ink/60 mt-1">
-            past reflections and what you finished, newest first
+            finished notes, past reflections, and how busy you've been —
+            newest first
           </p>
         </div>
       </header>
@@ -76,7 +83,7 @@ export function HistoryView() {
         <div className="bg-white/70 rounded-lg p-4 shadow-sticky space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-hand text-lg leading-none">
-              progress over time
+              how busy you've been
             </h3>
             <div className="inline-flex bg-paper/70 rounded-full p-0.5 border border-black/10">
               <button
@@ -101,10 +108,10 @@ export function HistoryView() {
               </button>
             </div>
           </div>
-          <SimpleBarChart bars={bars} threshold={streakThreshold} />
+          <SimpleBarChart bars={bars} maxValue={maxValue} hideThreshold />
           <p className="text-xs text-ink/50">
-            dashed line: streak threshold ({streakThreshold}%). dark bars are
-            days/weeks at or above it.
+            counts every progress change, checklist tick, weight tweak — i.e.
+            how much you poked at your notes.
           </p>
         </div>
       )}

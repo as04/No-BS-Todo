@@ -40,7 +40,7 @@ export default function App() {
   const [showEveningReview, setShowEveningReview] = useState(false);
   const [pickerDismissed, setPickerDismissed] = useState(false);
   const [showAll, setShowAll] = useState(false);
-  const [tab, setTab] = useState<'notes' | 'habits' | 'history'>('notes');
+  const [tab, setTab] = useState<'notes' | 'habits' | 'done'>('notes');
   const [showFilter, setShowFilter] = useState(false);
   const [filterCategoryIds, setFilterCategoryIds] = useState<Set<string>>(
     new Set()
@@ -152,12 +152,12 @@ export default function App() {
               habits
             </button>
             <button
-              onClick={() => setTab('history')}
+              onClick={() => setTab('done')}
               className={`text-xs px-3 py-1 rounded-full transition ${
-                tab === 'history' ? 'bg-ink text-paper' : 'text-ink/70 hover:text-ink'
+                tab === 'done' ? 'bg-ink text-paper' : 'text-ink/70 hover:text-ink'
               }`}
             >
-              history
+              done
             </button>
           </div>
           {streak > 0 && (
@@ -295,7 +295,7 @@ export default function App() {
           </div>
         )}
         {tab === 'habits' && <HabitTracker />}
-        {tab === 'history' && <HistoryView />}
+        {tab === 'done' && <HistoryView />}
       </main>
 
       {(showAddNote || showCategories || showEveningReview) && (
