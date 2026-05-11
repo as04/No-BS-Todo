@@ -65,7 +65,7 @@ export function HistoryView() {
     );
   }, [dailyHistory, notes]);
 
-  const hasAnyHistory = dailyHistory.length > 0;
+  const hasAnyActivity = bars.some((b) => b.hasData && b.value > 0);
 
   return (
     <div className="max-w-3xl mx-auto px-6 pb-24 space-y-4">
@@ -79,42 +79,50 @@ export function HistoryView() {
         </div>
       </header>
 
-      {hasAnyHistory && (
-        <div className="bg-white/70 rounded-lg p-4 shadow-sticky space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="font-hand text-lg leading-none">
-              how busy you've been
-            </h3>
-            <div className="inline-flex bg-paper/70 rounded-full p-0.5 border border-black/10">
-              <button
-                onClick={() => setChartMode('daily')}
-                className={`text-xs px-3 py-1 rounded-full transition ${
-                  chartMode === 'daily'
-                    ? 'bg-ink text-paper'
-                    : 'text-ink/70 hover:text-ink'
-                }`}
-              >
-                daily · 30d
-              </button>
-              <button
-                onClick={() => setChartMode('weekly')}
-                className={`text-xs px-3 py-1 rounded-full transition ${
-                  chartMode === 'weekly'
-                    ? 'bg-ink text-paper'
-                    : 'text-ink/70 hover:text-ink'
-                }`}
-              >
-                weekly · 12w
-              </button>
-            </div>
+      <div className="bg-white/70 rounded-lg p-4 shadow-sticky space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-hand text-lg leading-none">
+            how busy you've been
+          </h3>
+          <div className="inline-flex bg-paper/70 rounded-full p-0.5 border border-black/10">
+            <button
+              onClick={() => setChartMode('daily')}
+              className={`text-xs px-3 py-1 rounded-full transition ${
+                chartMode === 'daily'
+                  ? 'bg-ink text-paper'
+                  : 'text-ink/70 hover:text-ink'
+              }`}
+            >
+              daily · 30d
+            </button>
+            <button
+              onClick={() => setChartMode('weekly')}
+              className={`text-xs px-3 py-1 rounded-full transition ${
+                chartMode === 'weekly'
+                  ? 'bg-ink text-paper'
+                  : 'text-ink/70 hover:text-ink'
+              }`}
+            >
+              weekly · 12w
+            </button>
           </div>
-          <SimpleBarChart bars={bars} maxValue={maxValue} hideThreshold />
-          <p className="text-xs text-ink/50">
-            counts every progress change, checklist tick, weight tweak — i.e.
-            how much you poked at your notes.
-          </p>
         </div>
-      )}
+        <SimpleBarChart bars={bars} maxValue={maxValue} hideThreshold />
+        <p className="text-xs text-ink/50">
+          {hasAnyActivity ? (
+            <>
+              counts every progress change, checklist tick, weight tweak —
+              i.e. how much you poked at your notes.
+            </>
+          ) : (
+            <>
+              empty for now — touch any note (tick a checklist item, bump a
+              counter, edit a description) and today's bar will start
+              filling.
+            </>
+          )}
+        </p>
+      </div>
 
       {buckets.length === 0 ? (
         <div className="text-center py-12 text-ink/50">
