@@ -1,7 +1,10 @@
 import { nanoid } from 'nanoid';
 import type { Habit } from '../types';
 
-// Ben Franklin's 13 virtues — editable defaults.
+/**
+ * Ben Franklin's 13 classic virtues — used as the seed habits on first run.
+ * Editable and removable from the Habits tab.
+ */
 const FRANKLIN_13 = [
   'Temperance',
   'Silence',
@@ -18,6 +21,7 @@ const FRANKLIN_13 = [
   'Humility',
 ];
 
+/** Create the default habit set with empty ticks and weight 3. */
 export function seedHabits(): Habit[] {
   return FRANKLIN_13.map((name) => ({
     id: nanoid(),
@@ -27,7 +31,10 @@ export function seedHabits(): Habit[] {
   }));
 }
 
-// Returns YYYY-MM-DD keys for the 7 days ending today (local time), oldest first.
+/**
+ * Returns YYYY-MM-DD keys for the seven days ending on `today` (local time),
+ * oldest first. Used to render the rolling tick grid in the Habit tracker.
+ */
 export function lastSevenDays(today: Date = new Date()): string[] {
   const out: string[] = [];
   for (let i = 6; i >= 0; i--) {
@@ -42,6 +49,7 @@ export function lastSevenDays(today: Date = new Date()): string[] {
   return out;
 }
 
+/** Single-letter weekday label for a YYYY-MM-DD key (e.g. "M", "T", "W"). */
 export function dayLabel(key: string): string {
   const [y, m, d] = key.split('-').map(Number);
   const dt = new Date(y, m - 1, d);

@@ -5,6 +5,15 @@ import { ProgressRing } from './ProgressRing';
 
 type Props = { onClose: () => void };
 
+/**
+ * End-of-day reflection modal. Shows:
+ * - the day's start → end weighted-progress delta
+ * - up to 10 notes that were updated today (with their current status)
+ * - a free-text reflection field saved onto today's {@link DailySnapshot}
+ *
+ * Reflections persist across reopens (bound to the snapshot day), and
+ * Phase 4 history views will surface them.
+ */
 export function EveningReview({ onClose }: Props) {
   const notes = useToBooStore((s) => s.notes);
   const categories = useToBooStore((s) => s.categories);
@@ -35,8 +44,10 @@ export function EveningReview({ onClose }: Props) {
     setTimeout(() => setSaved(false), 1500);
   };
 
-  const catName = (id: string) =>
-    categories.find((c) => c.id === id)?.name ?? '—';
+  const catName = (id: string | null): string => {
+    if (!id) return 'uncategorized';
+    return categories.find((c) => c.id === id)?.name ?? '—';
+  };
 
   const delta = snap ? snap.endPercent - snap.startPercent : 0;
 

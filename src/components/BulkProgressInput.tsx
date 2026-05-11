@@ -1,12 +1,20 @@
 import { useState } from 'react';
 
 type Props = {
+  /** Singular noun (e.g. "chapter", "page", "lesson"). */
   unitLabel: string;
+  /** Current count (clamped at the parent). */
   current: number;
+  /** Total expected count (denominator for the progress bar). */
   total: number;
   onChange: (current: number) => void;
 };
 
+/**
+ * Counter control for bulk-mode notes. Shows "−  N  +  of M units" with
+ * a number input you can also type into directly. The "15 chapters" UX
+ * solution: one click per progress step, no fifteen checkboxes.
+ */
 export function BulkProgressInput({ unitLabel, current, total, onChange }: Props) {
   const [draft, setDraft] = useState(String(current));
 

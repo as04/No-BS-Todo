@@ -5,9 +5,16 @@ import { NoteListItem } from './NoteListItem';
 type Props = {
   notes: Note[];
   categories: Category[];
+  /** `card` = responsive sticky-note grid · `list` = condensed table. */
   view: 'card' | 'list';
 };
 
+/**
+ * Top-level container for the notes feed. Looks up each note's category by
+ * id (treating `null` as uncategorized) and dispatches to either
+ * {@link StickyNote} cards or {@link NoteListItem} rows based on `view`.
+ * Shows an empty-state hint when the input array is empty.
+ */
 export function NoteGrid({ notes, categories, view }: Props) {
   const byId = new Map(categories.map((c) => [c.id, c]));
 
@@ -20,11 +27,13 @@ export function NoteGrid({ notes, categories, view }: Props) {
     );
   }
 
+  const lookup = (id: string | null) => (id ? byId.get(id) : undefined);
+
   if (view === 'list') {
     return (
       <div className="bg-white/60 rounded-lg shadow-sticky overflow-hidden">
         {notes.map((n) => (
-          <NoteListItem key={n.id} note={n} category={byId.get(n.categoryId)} />
+          <NoteListItem key={n.id} note={n} category={lookup(n.categoryId)} />
         ))}
       </div>
     );
@@ -33,7 +42,7 @@ export function NoteGrid({ notes, categories, view }: Props) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {notes.map((n) => (
-        <StickyNote key={n.id} note={n} category={byId.get(n.categoryId)} />
+        <StickyNote key={n.id} note={n} category={lookup(n.categoryId)} />
       ))}
     </div>
   );

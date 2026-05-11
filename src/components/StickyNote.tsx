@@ -7,12 +7,20 @@ import { ProgressBar } from './ProgressBar';
 import { BulkProgressInput } from './BulkProgressInput';
 import { ChecklistEditor } from './ChecklistEditor';
 import { WeightPicker } from './WeightPicker';
+import { CategoryPicker } from './CategoryPicker';
 
 type Props = {
   note: Note;
+  /** `undefined` when the note is uncategorized — rendered with a gray dot. */
   category: Category | undefined;
 };
 
+/**
+ * Sticky-note card. Collapsed view shows title + category chip + progress
+ * bar. Click to expand and reveal description, checklist OR bulk control,
+ * category picker, weight, and delete. The card itself is the toggle
+ * button so anywhere on the surface flips state.
+ */
 export function StickyNote({ note, category }: Props) {
   const [expanded, setExpanded] = useState(false);
   const toggleChecklistItem = useToBooStore((s) => s.toggleChecklistItem);
@@ -37,19 +45,34 @@ export function StickyNote({ note, category }: Props) {
       >
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-hand text-xl leading-tight pr-2">{note.title}</h3>
-          {category && (
+          <span
+            className="inline-flex items-center gap-1.5 text-xs whitespace-nowrap px-2 py-0.5 rounded-full bg-white/60"
+          >
             <span
-              className={`inline-flex items-center gap-1.5 text-xs whitespace-nowrap px-2 py-0.5 rounded-full bg-white/60`}
-            >
-              <span className={`w-2 h-2 rounded-full ${COLOR_DOT[category.color]}`} />
-              {category.name}
-            </span>
-          )}
+              className={`w-2 h-2 rounded-full ${
+                category ? COLOR_DOT[category.color] : 'bg-gray-300'
+              }`}
+            />
+            {category ? category.name : 'uncategorized'}
+          </span>
         </div>
 
         <div className="mt-3 flex items-center gap-2">
           <ProgressBar percent={pct} />
           <span className="text-xs text-ink/70 w-9 text-right">{pct}%</span>
+        </div>
+        <div
+          className="mt-1.5 flex items-center gap-0.5 opacity-60"
+          title={`weight ${note.weight}/5 — high weight pulls the daily ring more`}
+        >
+          {[1, 2, 3, 4, 5].map((n) => (
+            <span
+              key={n}
+              className={`w-1.5 h-1.5 rounded-full ${
+                n <= (note.weight ?? 3) ? 'bg-ink/70' : 'bg-black/15'
+              }`}
+            />
+          ))}
         </div>
       </button>
 
@@ -78,6 +101,15 @@ export function StickyNote({ note, category }: Props) {
               onChange={(c) => setBulkCurrent(note.id, c)}
             />
           )}
+
+          <div>
+            <label className="text-xs text-ink/60 block mb-1">category</label>
+            <CategoryPicker
+              value={note.categoryId}
+              onChange={(id) => updateNote(note.id, { categoryId: id })}
+              size="sm"
+            />
+          </div>
 
           <div className="flex items-center justify-between pt-1">
             <WeightPicker

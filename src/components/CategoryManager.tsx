@@ -5,6 +5,12 @@ import type { StickyColor } from '../types';
 
 type Props = { onClose: () => void };
 
+/**
+ * Modal that lets the user manage verticals and the categories nested under
+ * each. Supports inline rename, color reassignment, moving a category to a
+ * different vertical, deleting (notes survive as uncategorized), and adding
+ * new verticals or categories.
+ */
 export function CategoryManager({ onClose }: Props) {
   const verticals = useToBooStore((s) => s.verticals);
   const categories = useToBooStore((s) => s.categories);
@@ -63,7 +69,7 @@ export function CategoryManager({ onClose }: Props) {
                   onClick={() => {
                     if (
                       confirm(
-                        `Delete "${v.name}" vertical and ALL its categories + notes?`
+                        `Delete "${v.name}" vertical and its categories? Notes survive as uncategorized.`
                       )
                     )
                       deleteVertical(v.id);
@@ -74,58 +80,68 @@ export function CategoryManager({ onClose }: Props) {
                 </button>
               </div>
 
-              <div className="space-y-1.5 pl-2">
+              <div className="space-y-2 pl-2">
                 {cats.length === 0 && (
                   <p className="text-xs text-ink/40 italic">no categories yet</p>
                 )}
                 {cats.map((c) => (
-                  <div key={c.id} className="flex items-center gap-2">
-                    <div className="flex gap-1">
-                      {ALL_COLORS.map((col) => (
-                        <button
-                          key={col}
-                          onClick={() => updateCategory(c.id, { color: col })}
-                          className={`w-3.5 h-3.5 rounded-full ${COLOR_DOT[col]} ${
-                            c.color === col ? 'ring-2 ring-ink' : ''
-                          }`}
-                          aria-label={`set ${col}`}
-                        />
-                      ))}
-                    </div>
-                    <input
-                      value={c.name}
-                      onChange={(e) =>
-                        updateCategory(c.id, { name: e.target.value })
-                      }
-                      className="flex-1 bg-paper rounded px-2 py-1 text-sm border border-black/10"
-                    />
-                    <select
-                      value={c.verticalId}
-                      onChange={(e) =>
-                        updateCategory(c.id, { verticalId: e.target.value })
-                      }
-                      className="text-xs bg-paper rounded px-1 py-1 border border-black/10"
-                      title="move to vertical"
-                    >
-                      {verticals.map((vv) => (
-                        <option key={vv.id} value={vv.id}>
-                          {vv.name}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => {
-                        if (
-                          confirm(
-                            `Delete "${c.name}"? Notes in this category will also be deleted.`
+                  <div
+                    key={c.id}
+                    className="bg-paper/70 rounded-md p-2 space-y-1.5"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span
+                        className={`w-3 h-3 rounded-full ${COLOR_DOT[c.color]} shrink-0`}
+                      />
+                      <input
+                        value={c.name}
+                        onChange={(e) =>
+                          updateCategory(c.id, { name: e.target.value })
+                        }
+                        className="flex-1 min-w-0 bg-white rounded px-2 py-1 text-sm border border-black/10"
+                      />
+                      <button
+                        onClick={() => {
+                          if (
+                            confirm(
+                              `Delete "${c.name}"? Its notes survive as uncategorized.`
+                            )
                           )
-                        )
-                          deleteCategory(c.id);
-                      }}
-                      className="text-xs text-ink/40 hover:text-red-600"
-                    >
-                      del
-                    </button>
+                            deleteCategory(c.id);
+                        }}
+                        className="text-xs text-ink/40 hover:text-red-600 shrink-0"
+                      >
+                        del
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex gap-1">
+                        {ALL_COLORS.map((col) => (
+                          <button
+                            key={col}
+                            onClick={() => updateCategory(c.id, { color: col })}
+                            className={`w-4 h-4 rounded-full ${COLOR_DOT[col]} ${
+                              c.color === col ? 'ring-2 ring-ink' : ''
+                            }`}
+                            aria-label={`set ${col}`}
+                          />
+                        ))}
+                      </div>
+                      <select
+                        value={c.verticalId}
+                        onChange={(e) =>
+                          updateCategory(c.id, { verticalId: e.target.value })
+                        }
+                        className="text-xs bg-white rounded px-2 py-1 border border-black/10 ml-auto"
+                        title="move to vertical"
+                      >
+                        {verticals.map((vv) => (
+                          <option key={vv.id} value={vv.id}>
+                            {vv.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 ))}
               </div>

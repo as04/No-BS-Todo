@@ -1,5 +1,9 @@
 import type { StickyColor } from '../types';
 
+/**
+ * Pastel sticky-note background classes, keyed by {@link StickyColor}. Used
+ * on the body of a StickyNote card.
+ */
 export const COLOR_BG: Record<StickyColor, string> = {
   yellow: 'bg-sticky-yellow',
   pink: 'bg-sticky-pink',
@@ -10,6 +14,10 @@ export const COLOR_BG: Record<StickyColor, string> = {
   gray: 'bg-sticky-gray',
 };
 
+/**
+ * Saturated dot classes, used for the small colour indicators that appear
+ * next to category names in pickers and chips.
+ */
 export const COLOR_DOT: Record<StickyColor, string> = {
   yellow: 'bg-yellow-300',
   pink: 'bg-pink-300',
@@ -20,6 +28,7 @@ export const COLOR_DOT: Record<StickyColor, string> = {
   gray: 'bg-gray-300',
 };
 
+/** Iteration order for colour-picker buttons. */
 export const ALL_COLORS: StickyColor[] = [
   'yellow',
   'pink',

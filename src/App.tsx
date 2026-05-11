@@ -6,10 +6,23 @@ import { AddNoteForm } from './components/AddNoteForm';
 import { CategoryManager } from './components/CategoryManager';
 import { EveningReview } from './components/EveningReview';
 import { HabitTracker } from './components/HabitTracker';
+import { HistoryView } from './components/HistoryView';
+import { FilterBar } from './components/FilterBar';
 import { ProgressRing } from './components/ProgressRing';
 import { sortByInProgressFirst, weightedProgress } from './lib/progress';
 import { computeStreak } from './lib/streak';
 
+/**
+ * App shell. Responsibilities:
+ * - gate the UI behind the once-per-day Morning Picker
+ * - render header (ring + streak + tabs + filter/view/category/add buttons)
+ * - swap between the Notes feed and the Habit Tracker tab
+ * - host the filter bar and all top-level modals (AddNoteForm,
+ *   CategoryManager, EveningReview)
+ *
+ * All persistent state is in the Zustand store; only UI-local toggles
+ * (modals, picker dismissed, filter draft) live here.
+ */
 export default function App() {
   const notes = useToBooStore((s) => s.notes);
   const categories = useToBooStore((s) => s.categories);
@@ -18,6 +31,7 @@ export default function App() {
   const resetTodaysPick = useToBooStore((s) => s.resetTodaysPick);
   const dailyHistory = useToBooStore((s) => s.dailyHistory);
   const streakThreshold = useToBooStore((s) => s.streakThreshold);
+  const setStreakThreshold = useToBooStore((s) => s.setStreakThreshold);
   const viewPrefs = useToBooStore((s) => s.viewPrefs);
   const setViewPrefs = useToBooStore((s) => s.setViewPrefs);
 
@@ -26,11 +40,20 @@ export default function App() {
   const [showEveningReview, setShowEveningReview] = useState(false);
   const [pickerDismissed, setPickerDismissed] = useState(false);
   const [showAll, setShowAll] = useState(false);
-  const [tab, setTab] = useState<'notes' | 'habits'>('notes');
+  const [tab, setTab] = useState<'notes' | 'habits' | 'done'>('notes');
+  const [showFilter, setShowFilter] = useState(false);
+  const [filterCategoryIds, setFilterCategoryIds] = useState<Set<string>>(
+    new Set()
+  );
+  const [includeUncategorized, setIncludeUncategorized] = useState(false);
+  const filterActive = filterCategoryIds.size > 0 || includeUncategorized;
 
   const pickedToday =
     todaysPickedAt != null && isSameLocalDay(todaysPickedAt, Date.now());
 
+  // With zero categories the picker has nothing to offer, so skip it and let
+  // the user go straight to creating notes (the +note form now supports
+  // inline category creation and an uncategorized fallback).
   const showPicker =
     !pickedToday && !pickerDismissed && categories.length > 0;
 
@@ -38,7 +61,9 @@ export default function App() {
     () =>
       todaysCategoryIds.length === 0
         ? notes
-        : notes.filter((n) => todaysCategoryIds.includes(n.categoryId)),
+        : notes.filter(
+            (n) => n.categoryId !== null && todaysCategoryIds.includes(n.categoryId)
+          ),
     [notes, todaysCategoryIds]
   );
 
@@ -49,11 +74,30 @@ export default function App() {
   );
 
   const visibleNotes = useMemo(() => {
-    const filtered = showAll ? notes : todaysNotes;
+    let filtered = showAll ? notes : todaysNotes;
+    if (filterActive) {
+      filtered = filtered.filter((n) =>
+        n.categoryId === null
+          ? includeUncategorized
+          : filterCategoryIds.has(n.categoryId)
+      );
+    }
     const active = filtered.filter((n) => n.status !== 'done');
     const sorted = sortByInProgressFirst(active);
     return viewPrefs.minimalist ? sorted.slice(0, viewPrefs.minN) : sorted;
-  }, [notes, todaysNotes, showAll, viewPrefs.minimalist, viewPrefs.minN]);
+  }, [
+    notes,
+    todaysNotes,
+    showAll,
+    filterActive,
+    filterCategoryIds,
+    includeUncategorized,
+    viewPrefs.minimalist,
+    viewPrefs.minN,
+  ]);
+
+  const filterCount =
+    filterCategoryIds.size + (includeUncategorized ? 1 : 0);
 
   if (showPicker) {
     return <MorningPicker onDone={() => setPickerDismissed(true)} />;
@@ -67,7 +111,10 @@ export default function App() {
     <div className="min-h-screen">
       <header className="px-6 pt-8 pb-4 flex items-center justify-between max-w-6xl mx-auto">
         <div className="flex items-center gap-4">
-          <ProgressRing percent={todaysProgress} label={`${todaysProgress}% across today's notes`} />
+          <ProgressRing
+            percent={todaysProgress}
+            label={`${todaysProgress}% — weighted average of today's notes (high-weight notes count more)`}
+          />
           <div>
             <h1 className="font-hand text-4xl leading-none">ToBoo</h1>
             {todaysCategories.length > 0 && !showAll && (
@@ -104,17 +151,45 @@ export default function App() {
             >
               habits
             </button>
+            <button
+              onClick={() => setTab('done')}
+              className={`text-xs px-3 py-1 rounded-full transition ${
+                tab === 'done' ? 'bg-ink text-paper' : 'text-ink/70 hover:text-ink'
+              }`}
+            >
+              done
+            </button>
           </div>
           {streak > 0 && (
-            <span
-              className="text-xs px-3 py-1.5 rounded-full bg-orange-100 border border-orange-200 text-orange-700"
-              title={`Streak: ${streak} day${streak === 1 ? '' : 's'} above ${streakThreshold}%`}
+            <button
+              onClick={() => {
+                const next = prompt(
+                  `Streak counts consecutive days where your daily progress ring reaches at least N%. Current N = ${streakThreshold}.\n\nSet a new threshold (0-100):`,
+                  String(streakThreshold)
+                );
+                if (next === null) return;
+                const n = parseInt(next, 10);
+                if (!isNaN(n)) setStreakThreshold(n);
+              }}
+              className="text-xs px-3 py-1.5 rounded-full bg-orange-100 border border-orange-200 text-orange-700 hover:bg-orange-200"
+              title={`🔥 ${streak} day${streak === 1 ? '' : 's'} in a row above ${streakThreshold}%. Click to change the threshold.`}
             >
               🔥 {streak}
-            </span>
+            </button>
           )}
           {tab === 'notes' && (
             <>
+              <button
+                onClick={() => setShowFilter((v) => !v)}
+                className={`text-xs px-3 py-1.5 rounded-full border transition ${
+                  filterActive || showFilter
+                    ? 'bg-ink text-paper border-ink'
+                    : 'border-black/10 bg-white/60 hover:bg-white'
+                }`}
+                title="filter notes by vertical/category"
+              >
+                {filterActive ? `filter · ${filterCount}` : 'filter'}
+              </button>
               <div className="inline-flex bg-white/60 rounded-full p-0.5 border border-black/10">
                 <button
                   onClick={() => setViewPrefs({ view: 'card' })}
@@ -199,8 +274,18 @@ export default function App() {
         </div>
       </header>
 
-      <main className="pb-24 max-w-6xl mx-auto">
-        {tab === 'notes' ? (
+      {tab === 'notes' && showFilter && (
+        <FilterBar
+          selectedCategoryIds={filterCategoryIds}
+          includeUncategorized={includeUncategorized}
+          onCategoryIdsChange={setFilterCategoryIds}
+          onIncludeUncategorizedChange={setIncludeUncategorized}
+          onClose={() => setShowFilter(false)}
+        />
+      )}
+
+      <main className="pb-24 max-w-6xl mx-auto pt-2">
+        {tab === 'notes' && (
           <div className="px-6">
             <NoteGrid
               notes={visibleNotes}
@@ -208,9 +293,9 @@ export default function App() {
               view={viewPrefs.view}
             />
           </div>
-        ) : (
-          <HabitTracker />
         )}
+        {tab === 'habits' && <HabitTracker />}
+        {tab === 'done' && <HistoryView />}
       </main>
 
       {(showAddNote || showCategories || showEveningReview) && (

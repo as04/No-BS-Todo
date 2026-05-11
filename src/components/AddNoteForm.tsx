@@ -2,21 +2,30 @@ import { useState } from 'react';
 import { useToBooStore } from '../store/useToBooStore';
 import type { ProgressMode } from '../types';
 import { WeightPicker } from './WeightPicker';
+import { CategoryPicker } from './CategoryPicker';
 
 type Props = { onClose: () => void };
 
+/**
+ * Modal for creating a new note. Uses the shared CategoryPicker so the
+ * user can pick an existing category, mark the note as uncategorized,
+ * or create a new category inline. Lets the user pick a progress mode
+ * (checklist OR bulk units) and assign a weight 1..5.
+ */
 export function AddNoteForm({ onClose }: Props) {
   const categories = useToBooStore((s) => s.categories);
   const addNote = useToBooStore((s) => s.addNote);
 
   const [title, setTitle] = useState('');
-  const [categoryId, setCategoryId] = useState(categories[0]?.id ?? '');
+  const [categoryId, setCategoryId] = useState<string | null>(
+    categories[0]?.id ?? null
+  );
   const [mode, setMode] = useState<'checklist' | 'bulk'>('checklist');
   const [unitLabel, setUnitLabel] = useState('chapter');
   const [total, setTotal] = useState(10);
   const [weight, setWeight] = useState(3);
 
-  const canSubmit = title.trim().length > 0 && categoryId;
+  const canSubmit = title.trim().length > 0;
 
   const submit = () => {
     if (!canSubmit) return;
@@ -28,27 +37,8 @@ export function AddNoteForm({ onClose }: Props) {
     onClose();
   };
 
-  if (categories.length === 0) {
-    return (
-      <div className="bg-white rounded-lg p-6 shadow-lg max-w-md w-full">
-        <p className="text-sm text-ink/70">
-          Add a category first before creating a note.
-        </p>
-        <div className="text-right mt-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-sm underline"
-          >
-            close
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-white rounded-lg p-6 shadow-lg max-w-md w-full space-y-4">
+    <div className="bg-white rounded-lg p-6 shadow-lg max-w-md w-full space-y-4 max-h-[85vh] overflow-y-auto">
       <h2 className="font-hand text-2xl">new note</h2>
 
       <div className="space-y-1.5">
@@ -64,17 +54,7 @@ export function AddNoteForm({ onClose }: Props) {
 
       <div className="space-y-1.5">
         <label className="text-xs text-ink/60">Category</label>
-        <select
-          value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)}
-          className="w-full bg-paper rounded px-3 py-2 border border-black/10"
-        >
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        <CategoryPicker value={categoryId} onChange={setCategoryId} />
       </div>
 
       <div className="space-y-1.5">

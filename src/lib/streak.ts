@@ -1,8 +1,15 @@
 import type { DailySnapshot } from '../types';
 import { localDateKey, previousDateKey } from './dates';
 
-// Counts the consecutive days ending today (or yesterday if today not started)
-// where endPercent >= threshold.
+/**
+ * Count consecutive days, anchored at today (or yesterday if today doesn't
+ * have a snapshot yet), where {@link DailySnapshot.endPercent} is at least
+ * `threshold`. Used to render the 🔥 chip in the header.
+ *
+ * @param history snapshots, sorted ascending by date
+ * @param threshold percent the day must reach to count (default 10)
+ * @returns the streak length in whole days, or 0
+ */
 export function computeStreak(
   history: DailySnapshot[],
   threshold: number

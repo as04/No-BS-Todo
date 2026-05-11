@@ -7,12 +7,19 @@ import { ProgressBar } from './ProgressBar';
 import { BulkProgressInput } from './BulkProgressInput';
 import { ChecklistEditor } from './ChecklistEditor';
 import { WeightPicker } from './WeightPicker';
+import { CategoryPicker } from './CategoryPicker';
 
 type Props = {
   note: Note;
+  /** `undefined` when the note is uncategorized — rendered with a gray dot. */
   category: Category | undefined;
 };
 
+/**
+ * Single-row variant of {@link StickyNote} used by `NoteGrid` when the
+ * user is in `list` view. Same expand-on-click behaviour and same nested
+ * controls, just denser.
+ */
 export function NoteListItem({ note, category }: Props) {
   const [expanded, setExpanded] = useState(false);
   const toggleChecklistItem = useToBooStore((s) => s.toggleChecklistItem);
@@ -35,9 +42,22 @@ export function NoteListItem({ note, category }: Props) {
         <span className={`w-2.5 h-2.5 rounded-full ${colorDot}`} />
         <span className="flex-1 min-w-0">
           <span className="block truncate text-sm">{note.title}</span>
-          {category && (
-            <span className="text-xs text-ink/40">{category.name}</span>
-          )}
+          <span className="text-xs text-ink/40">
+            {category ? category.name : 'uncategorized'}
+          </span>
+        </span>
+        <span
+          className="hidden sm:flex items-center gap-0.5 opacity-60"
+          title={`weight ${note.weight}/5`}
+        >
+          {[1, 2, 3, 4, 5].map((n) => (
+            <span
+              key={n}
+              className={`w-1 h-1 rounded-full ${
+                n <= (note.weight ?? 3) ? 'bg-ink/70' : 'bg-black/15'
+              }`}
+            />
+          ))}
         </span>
         <span className="w-32 hidden sm:block">
           <ProgressBar percent={pct} />
@@ -70,6 +90,15 @@ export function NoteListItem({ note, category }: Props) {
               onChange={(c) => setBulkCurrent(note.id, c)}
             />
           )}
+
+          <div>
+            <label className="text-xs text-ink/60 block mb-1">category</label>
+            <CategoryPicker
+              value={note.categoryId}
+              onChange={(id) => updateNote(note.id, { categoryId: id })}
+              size="sm"
+            />
+          </div>
 
           <div className="flex items-center justify-between">
             <WeightPicker
