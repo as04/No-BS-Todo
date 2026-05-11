@@ -58,6 +58,12 @@ export type Habit = {
   ticks: Record<string, boolean>; // dateKey -> ticked
 };
 
+export type ViewPrefs = {
+  view: 'card' | 'list';
+  minimalist: boolean;
+  minN: number;
+};
+
 export type ToBooState = {
   schemaVersion: 2;
   verticals: Vertical[];
@@ -68,4 +74,5 @@ export type ToBooState = {
   dailyHistory: DailySnapshot[]; // sorted ascending by date; trimmed to last 400
   streakThreshold: number; // percent — default 10
   habits: Habit[];
+  viewPrefs: ViewPrefs;
 };

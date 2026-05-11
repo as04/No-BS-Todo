@@ -50,6 +50,8 @@ type Actions = {
   updateHabit: (id: string, patch: Partial<Omit<Habit, 'id' | 'ticks'>>) => void;
   deleteHabit: (id: string) => void;
   toggleHabitTick: (id: string, dateKey: string) => void;
+
+  setViewPrefs: (patch: Partial<ToBooState['viewPrefs']>) => void;
 };
 
 type Store = ToBooState & Actions;
@@ -71,6 +73,7 @@ const seed = (): ToBooState => {
     dailyHistory: [],
     streakThreshold: 10,
     habits: seedHabits(),
+    viewPrefs: { view: 'card', minimalist: false, minN: 5 },
   };
 };
 
@@ -87,6 +90,7 @@ export const useToBooStore = create<Store>((set, get) => {
       dailyHistory,
       streakThreshold,
       habits,
+      viewPrefs,
     } = get();
     saveState({
       schemaVersion: 2,
@@ -98,6 +102,7 @@ export const useToBooStore = create<Store>((set, get) => {
       dailyHistory,
       streakThreshold,
       habits,
+      viewPrefs,
     });
   };
 
@@ -354,6 +359,11 @@ export const useToBooStore = create<Store>((set, get) => {
           return { ...h, ticks: next };
         }),
       }));
+      persist();
+    },
+
+    setViewPrefs: (patch) => {
+      set((s) => ({ viewPrefs: { ...s.viewPrefs, ...patch } }));
       persist();
     },
   };

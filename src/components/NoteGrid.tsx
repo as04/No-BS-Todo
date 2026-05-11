@@ -1,12 +1,14 @@
 import type { Category, Note } from '../types';
 import { StickyNote } from './StickyNote';
+import { NoteListItem } from './NoteListItem';
 
 type Props = {
   notes: Note[];
   categories: Category[];
+  view: 'card' | 'list';
 };
 
-export function NoteGrid({ notes, categories }: Props) {
+export function NoteGrid({ notes, categories, view }: Props) {
   const byId = new Map(categories.map((c) => [c.id, c]));
 
   if (notes.length === 0) {
@@ -14,6 +16,16 @@ export function NoteGrid({ notes, categories }: Props) {
       <div className="text-center py-20 text-ink/50">
         <p className="font-hand text-2xl">no notes here yet</p>
         <p className="text-sm mt-1">add one with the + button below</p>
+      </div>
+    );
+  }
+
+  if (view === 'list') {
+    return (
+      <div className="bg-white/60 rounded-lg shadow-sticky overflow-hidden">
+        {notes.map((n) => (
+          <NoteListItem key={n.id} note={n} category={byId.get(n.categoryId)} />
+        ))}
       </div>
     );
   }

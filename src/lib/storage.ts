@@ -33,6 +33,7 @@ function migrateV1ToV2(v1: V1State): ToBooState {
     dailyHistory: [],
     streakThreshold: 10,
     habits: seedHabits(),
+    viewPrefs: { view: 'card', minimalist: false, minN: 5 },
   };
 }
 
@@ -43,6 +44,7 @@ function backfillV2(s: ToBooState): ToBooState {
     dailyHistory: s.dailyHistory ?? [],
     streakThreshold: s.streakThreshold ?? 10,
     habits: s.habits ?? seedHabits(),
+    viewPrefs: s.viewPrefs ?? { view: 'card', minimalist: false, minN: 5 },
   };
 }
 

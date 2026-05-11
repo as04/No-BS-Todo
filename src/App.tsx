@@ -18,6 +18,8 @@ export default function App() {
   const resetTodaysPick = useToBooStore((s) => s.resetTodaysPick);
   const dailyHistory = useToBooStore((s) => s.dailyHistory);
   const streakThreshold = useToBooStore((s) => s.streakThreshold);
+  const viewPrefs = useToBooStore((s) => s.viewPrefs);
+  const setViewPrefs = useToBooStore((s) => s.setViewPrefs);
 
   const [showAddNote, setShowAddNote] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
@@ -49,8 +51,9 @@ export default function App() {
   const visibleNotes = useMemo(() => {
     const filtered = showAll ? notes : todaysNotes;
     const active = filtered.filter((n) => n.status !== 'done');
-    return sortByInProgressFirst(active);
-  }, [notes, todaysNotes, showAll]);
+    const sorted = sortByInProgressFirst(active);
+    return viewPrefs.minimalist ? sorted.slice(0, viewPrefs.minN) : sorted;
+  }, [notes, todaysNotes, showAll, viewPrefs.minimalist, viewPrefs.minN]);
 
   if (showPicker) {
     return <MorningPicker onDone={() => setPickerDismissed(true)} />;
@@ -111,12 +114,64 @@ export default function App() {
             </span>
           )}
           {tab === 'notes' && (
-            <button
-              onClick={() => setShowAll((v) => !v)}
-              className="text-xs px-3 py-1.5 rounded-full border border-black/10 bg-white/60 hover:bg-white"
-            >
-              {showAll ? 'today only' : 'show all'}
-            </button>
+            <>
+              <div className="inline-flex bg-white/60 rounded-full p-0.5 border border-black/10">
+                <button
+                  onClick={() => setViewPrefs({ view: 'card' })}
+                  className={`text-xs px-2.5 py-1 rounded-full transition ${
+                    viewPrefs.view === 'card'
+                      ? 'bg-ink text-paper'
+                      : 'text-ink/70 hover:text-ink'
+                  }`}
+                  title="card view"
+                >
+                  ▦
+                </button>
+                <button
+                  onClick={() => setViewPrefs({ view: 'list' })}
+                  className={`text-xs px-2.5 py-1 rounded-full transition ${
+                    viewPrefs.view === 'list'
+                      ? 'bg-ink text-paper'
+                      : 'text-ink/70 hover:text-ink'
+                  }`}
+                  title="list view"
+                >
+                  ☰
+                </button>
+              </div>
+              <button
+                onClick={() => setViewPrefs({ minimalist: !viewPrefs.minimalist })}
+                className={`text-xs px-3 py-1.5 rounded-full border transition ${
+                  viewPrefs.minimalist
+                    ? 'bg-ink text-paper border-ink'
+                    : 'border-black/10 bg-white/60 hover:bg-white'
+                }`}
+                title="show only the top N notes"
+              >
+                {viewPrefs.minimalist ? `min · top ${viewPrefs.minN}` : 'minimalist'}
+              </button>
+              {viewPrefs.minimalist && (
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={viewPrefs.minN}
+                  onChange={(e) =>
+                    setViewPrefs({
+                      minN: Math.max(1, Math.min(50, parseInt(e.target.value, 10) || 1)),
+                    })
+                  }
+                  className="w-12 text-xs bg-white/60 border border-black/10 rounded px-1.5 py-1"
+                  aria-label="minimalist count"
+                />
+              )}
+              <button
+                onClick={() => setShowAll((v) => !v)}
+                className="text-xs px-3 py-1.5 rounded-full border border-black/10 bg-white/60 hover:bg-white"
+              >
+                {showAll ? 'today only' : 'show all'}
+              </button>
+            </>
           )}
           <button
             onClick={() => setShowEveningReview(true)}
@@ -147,7 +202,11 @@ export default function App() {
       <main className="pb-24 max-w-6xl mx-auto">
         {tab === 'notes' ? (
           <div className="px-6">
-            <NoteGrid notes={visibleNotes} categories={categories} />
+            <NoteGrid
+              notes={visibleNotes}
+              categories={categories}
+              view={viewPrefs.view}
+            />
           </div>
         ) : (
           <HabitTracker />
