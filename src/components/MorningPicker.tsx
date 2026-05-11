@@ -3,9 +3,16 @@ import { useToBooStore } from '../store/useToBooStore';
 import { CategoryChip } from './CategoryChip';
 
 type Props = {
+  /** Fires after the user submits OR explicitly skips the picker. */
   onDone: () => void;
 };
 
+/**
+ * Once-per-day gate that asks "what's on your plate today?" and writes the
+ * selected category ids into the store. Skipped automatically if the user
+ * has already picked today, dismissed it for this session, or has no
+ * categories at all.
+ */
 export function MorningPicker({ onDone }: Props) {
   const categories = useToBooStore((s) => s.categories);
   const pick = useToBooStore((s) => s.pickTodaysCategories);

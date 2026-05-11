@@ -5,6 +5,12 @@ import type { StickyColor } from '../types';
 
 type Props = { onClose: () => void };
 
+/**
+ * Modal that lets the user manage verticals and the categories nested under
+ * each. Supports inline rename, color reassignment, moving a category to a
+ * different vertical, deleting (notes survive as uncategorized), and adding
+ * new verticals or categories.
+ */
 export function CategoryManager({ onClose }: Props) {
   const verticals = useToBooStore((s) => s.verticals);
   const categories = useToBooStore((s) => s.categories);

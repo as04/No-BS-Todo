@@ -1,3 +1,13 @@
+/**
+ * ToBoo state container. Built on Zustand: one global store, every action
+ * mutates the state then persists the whole {@link ToBooState} blob to
+ * localStorage via {@link saveState}. Initial state comes from
+ * {@link loadState} (migrating from v1 if needed) or {@link seed} if empty.
+ *
+ * Daily-snapshot bookkeeping happens implicitly inside every note-mutating
+ * action so the header progress ring and 🔥 streak stay current without
+ * callers having to remember to touch the history.
+ */
 import { create } from 'zustand';
 import { nanoid } from 'nanoid';
 import type {
@@ -17,17 +27,27 @@ import { seedHabits } from '../lib/habits';
 import type { DailySnapshot } from '../types';
 
 type Actions = {
+  /** Replace today's snapshot's free-text reflection (Evening Review). */
   setReflection: (text: string) => void;
+  /** Update the streak chip's percent threshold (default 10). Clamps to 0..100. */
   setStreakThreshold: (n: number) => void;
 
+  /** Append a new vertical with a generated id. */
   addVertical: (name: string) => void;
   updateVertical: (id: string, patch: Partial<Omit<Vertical, 'id'>>) => void;
+  /**
+   * Delete a vertical. Its categories are also removed; notes in those
+   * categories survive as uncategorized (`categoryId: null`).
+   */
   deleteVertical: (id: string) => void;
 
+  /** Create a category nested under a vertical. */
   addCategory: (name: string, color: StickyColor, verticalId: string) => void;
   updateCategory: (id: string, patch: Partial<Omit<Category, 'id'>>) => void;
+  /** Delete a category; its notes survive as uncategorized. */
   deleteCategory: (id: string) => void;
 
+  /** Create a note. `weight` defaults to 3, `categoryId` may be null. */
   addNote: (input: {
     title: string;
     categoryId: string | null;
@@ -38,19 +58,26 @@ type Actions = {
   updateNote: (id: string, patch: Partial<Omit<Note, 'id' | 'createdAt'>>) => void;
   deleteNote: (id: string) => void;
 
+  /** Toggle the `done` flag of a single checklist sub-item. */
   toggleChecklistItem: (noteId: string, itemId: string) => void;
   addChecklistItem: (noteId: string, text: string) => void;
   removeChecklistItem: (noteId: string, itemId: string) => void;
+  /** Set the bulk counter (clamps to 0..total). */
   setBulkCurrent: (noteId: string, current: number) => void;
 
+  /** Persist today's category focus and stamp the day's start snapshot. */
   pickTodaysCategories: (ids: string[]) => void;
+  /** Re-open the morning picker by clearing today's selection. */
   resetTodaysPick: () => void;
 
+  /** Create a habit with default empty ticks. */
   addHabit: (name: string, weight?: number) => void;
   updateHabit: (id: string, patch: Partial<Omit<Habit, 'id' | 'ticks'>>) => void;
   deleteHabit: (id: string) => void;
+  /** Toggle a single day's tick for a habit. Removes the key when unticking. */
   toggleHabitTick: (id: string, dateKey: string) => void;
 
+  /** Merge partial UI preferences (view, minimalist, minN). */
   setViewPrefs: (patch: Partial<ToBooState['viewPrefs']>) => void;
 };
 
@@ -145,17 +172,20 @@ export const useToBooStore = create<Store>((set, get) => {
     });
   };
 
+  /**
+   * Internal helper used by every note-mutating action. Applies `patch` to
+   * the target note, refreshes `updatedAt`, rederives `status`, and stamps
+   * today's snapshot so the daily ring and streak stay accurate.
+   */
   const updateNoteInternal = (id: string, patch: Partial<Note>) => {
     set((s) => ({
       notes: s.notes.map((n) => {
         if (n.id !== id) return n;
-        const merged = { ...n, ...patch, updatedAt: Date.now() } as Note;
+        const merged: Note = { ...n, ...patch, updatedAt: Date.now() };
         merged.status = deriveStatus(merged.progress);
         return merged;
       }),
     }));
-    // Only progress/weight changes affect the score; trigger snapshot for all
-    // updateNote calls (cheap) — non-progress patches just re-stamp endPercent.
     touchTodaysSnapshot();
     persist();
   };

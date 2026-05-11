@@ -8,6 +8,10 @@ type Props = {
   onRemove: (itemId: string) => void;
 };
 
+/**
+ * Inline editor for a note's checklist. Items show as checkbox + text; the
+ * trailing input adds a new item on Enter or Add-button click.
+ */
 export function ChecklistEditor({ items, onToggle, onAdd, onRemove }: Props) {
   const [draft, setDraft] = useState('');
 

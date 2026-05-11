@@ -11,9 +11,15 @@ import { CategoryPicker } from './CategoryPicker';
 
 type Props = {
   note: Note;
+  /** `undefined` when the note is uncategorized — rendered with a gray dot. */
   category: Category | undefined;
 };
 
+/**
+ * Single-row variant of {@link StickyNote} used by `NoteGrid` when the
+ * user is in `list` view. Same expand-on-click behaviour and same nested
+ * controls, just denser.
+ */
 export function NoteListItem({ note, category }: Props) {
   const [expanded, setExpanded] = useState(false);
   const toggleChecklistItem = useToBooStore((s) => s.toggleChecklistItem);

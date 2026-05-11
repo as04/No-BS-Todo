@@ -1,9 +1,16 @@
 type Props = {
+  /** Current value 1..5. */
   value: number;
   onChange: (v: number) => void;
+  /** Hide the "weight" label when `true` (useful inline next to other controls). */
   compact?: boolean;
 };
 
+/**
+ * Five-dot weight selector. Hover scale is a hint — clicking a dot sets the
+ * weight to that position. Used on notes (to influence the progress ring)
+ * and on habits.
+ */
 export function WeightPicker({ value, onChange, compact }: Props) {
   return (
     <div className="inline-flex items-center gap-1" title="Weight (1=trivial, 5=critical)">

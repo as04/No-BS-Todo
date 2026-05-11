@@ -5,9 +5,16 @@ import { NoteListItem } from './NoteListItem';
 type Props = {
   notes: Note[];
   categories: Category[];
+  /** `card` = responsive sticky-note grid · `list` = condensed table. */
   view: 'card' | 'list';
 };
 
+/**
+ * Top-level container for the notes feed. Looks up each note's category by
+ * id (treating `null` as uncategorized) and dispatches to either
+ * {@link StickyNote} cards or {@link NoteListItem} rows based on `view`.
+ * Shows an empty-state hint when the input array is empty.
+ */
 export function NoteGrid({ notes, categories, view }: Props) {
   const byId = new Map(categories.map((c) => [c.id, c]));
 

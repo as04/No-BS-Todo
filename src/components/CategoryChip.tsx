@@ -3,10 +3,15 @@ import { COLOR_DOT } from '../lib/colors';
 
 type Props = {
   category: Category;
+  /** Render in the "selected" visual state. */
   selected?: boolean;
   onClick?: () => void;
 };
 
+/**
+ * Pill-shaped category chip with a small colour dot. Used by the morning
+ * picker for the multi-select state.
+ */
 export function CategoryChip({ category, selected, onClick }: Props) {
   return (
     <button

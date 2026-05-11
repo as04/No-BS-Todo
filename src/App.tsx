@@ -11,6 +11,17 @@ import { ProgressRing } from './components/ProgressRing';
 import { sortByInProgressFirst, weightedProgress } from './lib/progress';
 import { computeStreak } from './lib/streak';
 
+/**
+ * App shell. Responsibilities:
+ * - gate the UI behind the once-per-day Morning Picker
+ * - render header (ring + streak + tabs + filter/view/category/add buttons)
+ * - swap between the Notes feed and the Habit Tracker tab
+ * - host the filter bar and all top-level modals (AddNoteForm,
+ *   CategoryManager, EveningReview)
+ *
+ * All persistent state is in the Zustand store; only UI-local toggles
+ * (modals, picker dismissed, filter draft) live here.
+ */
 export default function App() {
   const notes = useToBooStore((s) => s.notes);
   const categories = useToBooStore((s) => s.categories);

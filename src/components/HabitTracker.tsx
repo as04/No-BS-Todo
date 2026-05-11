@@ -4,6 +4,12 @@ import { dayLabel, lastSevenDays } from '../lib/habits';
 import { WeightPicker } from './WeightPicker';
 import { localDateKey } from '../lib/dates';
 
+/**
+ * Standalone habits tab. Renders the user's habits (seeded with Ben
+ * Franklin's 13 virtues on first run) with an inline-editable name, a
+ * weight picker, and a rolling 7-day tick grid. Today's column is ringed
+ * in orange so it's easy to find.
+ */
 export function HabitTracker() {
   const habits = useToBooStore((s) => s.habits);
   const addHabit = useToBooStore((s) => s.addHabit);

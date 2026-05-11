@@ -11,9 +11,16 @@ import { CategoryPicker } from './CategoryPicker';
 
 type Props = {
   note: Note;
+  /** `undefined` when the note is uncategorized — rendered with a gray dot. */
   category: Category | undefined;
 };
 
+/**
+ * Sticky-note card. Collapsed view shows title + category chip + progress
+ * bar. Click to expand and reveal description, checklist OR bulk control,
+ * category picker, weight, and delete. The card itself is the toggle
+ * button so anywhere on the surface flips state.
+ */
 export function StickyNote({ note, category }: Props) {
   const [expanded, setExpanded] = useState(false);
   const toggleChecklistItem = useToBooStore((s) => s.toggleChecklistItem);

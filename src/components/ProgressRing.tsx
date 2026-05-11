@@ -1,10 +1,18 @@
 type Props = {
+  /** Completion 0..100. Out-of-range values are clamped. */
   percent: number;
+  /** Outer diameter in px. */
   size?: number;
+  /** Stroke width in px (also affects the inner radius). */
   stroke?: number;
+  /** Optional tooltip text — defaults to "{pct}% today". */
   label?: string;
 };
 
+/**
+ * Circular SVG progress indicator. Used in the App header for today's
+ * weighted progress and in the Evening Review screen for the day's end %.
+ */
 export function ProgressRing({
   percent,
   size = 56,
