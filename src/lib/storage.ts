@@ -1,5 +1,6 @@
 import type { ToBooState, Vertical, Category } from '../types';
 import { nanoid } from 'nanoid';
+import { seedHabits } from './habits';
 
 const KEY = 'toboo:v1';
 
@@ -31,6 +32,7 @@ function migrateV1ToV2(v1: V1State): ToBooState {
     todaysPickedAt: v1.todaysPickedAt,
     dailyHistory: [],
     streakThreshold: 10,
+    habits: seedHabits(),
   };
 }
 
@@ -40,6 +42,7 @@ function backfillV2(s: ToBooState): ToBooState {
     ...s,
     dailyHistory: s.dailyHistory ?? [],
     streakThreshold: s.streakThreshold ?? 10,
+    habits: s.habits ?? seedHabits(),
   };
 }
 

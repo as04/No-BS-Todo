@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid';
 import type {
   Category,
   ChecklistItem,
+  Habit,
   Note,
   ProgressMode,
   StickyColor,
@@ -12,6 +13,7 @@ import type {
 import { loadState, saveState, freshVerticals } from '../lib/storage';
 import { deriveStatus, weightedProgress } from '../lib/progress';
 import { localDateKey } from '../lib/dates';
+import { seedHabits } from '../lib/habits';
 import type { DailySnapshot } from '../types';
 
 type Actions = {
@@ -43,6 +45,11 @@ type Actions = {
 
   pickTodaysCategories: (ids: string[]) => void;
   resetTodaysPick: () => void;
+
+  addHabit: (name: string, weight?: number) => void;
+  updateHabit: (id: string, patch: Partial<Omit<Habit, 'id' | 'ticks'>>) => void;
+  deleteHabit: (id: string) => void;
+  toggleHabitTick: (id: string, dateKey: string) => void;
 };
 
 type Store = ToBooState & Actions;
@@ -63,6 +70,7 @@ const seed = (): ToBooState => {
     todaysPickedAt: null,
     dailyHistory: [],
     streakThreshold: 10,
+    habits: seedHabits(),
   };
 };
 
@@ -78,6 +86,7 @@ export const useToBooStore = create<Store>((set, get) => {
       todaysPickedAt,
       dailyHistory,
       streakThreshold,
+      habits,
     } = get();
     saveState({
       schemaVersion: 2,
@@ -88,6 +97,7 @@ export const useToBooStore = create<Store>((set, get) => {
       todaysPickedAt,
       dailyHistory,
       streakThreshold,
+      habits,
     });
   };
 
@@ -312,6 +322,38 @@ export const useToBooStore = create<Store>((set, get) => {
 
     setStreakThreshold: (n) => {
       set({ streakThreshold: Math.max(0, Math.min(100, n)) });
+      persist();
+    },
+
+    addHabit: (name, weight = 3) => {
+      set((s) => ({
+        habits: [...s.habits, { id: nanoid(), name, weight, ticks: {} }],
+      }));
+      persist();
+    },
+
+    updateHabit: (id, patch) => {
+      set((s) => ({
+        habits: s.habits.map((h) => (h.id === id ? { ...h, ...patch } : h)),
+      }));
+      persist();
+    },
+
+    deleteHabit: (id) => {
+      set((s) => ({ habits: s.habits.filter((h) => h.id !== id) }));
+      persist();
+    },
+
+    toggleHabitTick: (id, dateKey) => {
+      set((s) => ({
+        habits: s.habits.map((h) => {
+          if (h.id !== id) return h;
+          const next = { ...h.ticks };
+          if (next[dateKey]) delete next[dateKey];
+          else next[dateKey] = true;
+          return { ...h, ticks: next };
+        }),
+      }));
       persist();
     },
   };

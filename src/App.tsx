@@ -5,6 +5,7 @@ import { NoteGrid } from './components/NoteGrid';
 import { AddNoteForm } from './components/AddNoteForm';
 import { CategoryManager } from './components/CategoryManager';
 import { EveningReview } from './components/EveningReview';
+import { HabitTracker } from './components/HabitTracker';
 import { ProgressRing } from './components/ProgressRing';
 import { sortByInProgressFirst, weightedProgress } from './lib/progress';
 import { computeStreak } from './lib/streak';
@@ -23,6 +24,7 @@ export default function App() {
   const [showEveningReview, setShowEveningReview] = useState(false);
   const [pickerDismissed, setPickerDismissed] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [tab, setTab] = useState<'notes' | 'habits'>('notes');
 
   const pickedToday =
     todaysPickedAt != null && isSameLocalDay(todaysPickedAt, Date.now());
@@ -82,6 +84,24 @@ export default function App() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <div className="inline-flex bg-white/60 rounded-full p-0.5 mr-1 border border-black/10">
+            <button
+              onClick={() => setTab('notes')}
+              className={`text-xs px-3 py-1 rounded-full transition ${
+                tab === 'notes' ? 'bg-ink text-paper' : 'text-ink/70 hover:text-ink'
+              }`}
+            >
+              notes
+            </button>
+            <button
+              onClick={() => setTab('habits')}
+              className={`text-xs px-3 py-1 rounded-full transition ${
+                tab === 'habits' ? 'bg-ink text-paper' : 'text-ink/70 hover:text-ink'
+              }`}
+            >
+              habits
+            </button>
+          </div>
           {streak > 0 && (
             <span
               className="text-xs px-3 py-1.5 rounded-full bg-orange-100 border border-orange-200 text-orange-700"
@@ -90,12 +110,14 @@ export default function App() {
               🔥 {streak}
             </span>
           )}
-          <button
-            onClick={() => setShowAll((v) => !v)}
-            className="text-xs px-3 py-1.5 rounded-full border border-black/10 bg-white/60 hover:bg-white"
-          >
-            {showAll ? 'today only' : 'show all'}
-          </button>
+          {tab === 'notes' && (
+            <button
+              onClick={() => setShowAll((v) => !v)}
+              className="text-xs px-3 py-1.5 rounded-full border border-black/10 bg-white/60 hover:bg-white"
+            >
+              {showAll ? 'today only' : 'show all'}
+            </button>
+          )}
           <button
             onClick={() => setShowEveningReview(true)}
             className="text-xs px-3 py-1.5 rounded-full border border-black/10 bg-white/60 hover:bg-white"
@@ -103,23 +125,33 @@ export default function App() {
           >
             🌙 review
           </button>
-          <button
-            onClick={() => setShowCategories(true)}
-            className="text-xs px-3 py-1.5 rounded-full border border-black/10 bg-white/60 hover:bg-white"
-          >
-            categories
-          </button>
-          <button
-            onClick={() => setShowAddNote(true)}
-            className="text-xs px-3 py-1.5 rounded-full bg-ink text-paper hover:bg-ink/80"
-          >
-            + note
-          </button>
+          {tab === 'notes' && (
+            <>
+              <button
+                onClick={() => setShowCategories(true)}
+                className="text-xs px-3 py-1.5 rounded-full border border-black/10 bg-white/60 hover:bg-white"
+              >
+                categories
+              </button>
+              <button
+                onClick={() => setShowAddNote(true)}
+                className="text-xs px-3 py-1.5 rounded-full bg-ink text-paper hover:bg-ink/80"
+              >
+                + note
+              </button>
+            </>
+          )}
         </div>
       </header>
 
-      <main className="px-6 pb-24 max-w-6xl mx-auto">
-        <NoteGrid notes={visibleNotes} categories={categories} />
+      <main className="pb-24 max-w-6xl mx-auto">
+        {tab === 'notes' ? (
+          <div className="px-6">
+            <NoteGrid notes={visibleNotes} categories={categories} />
+          </div>
+        ) : (
+          <HabitTracker />
+        )}
       </main>
 
       {(showAddNote || showCategories || showEveningReview) && (

@@ -51,6 +51,13 @@ export type DailySnapshot = {
   reflection?: string; // filled by Evening Review (Phase 2.4)
 };
 
+export type Habit = {
+  id: string;
+  name: string;
+  weight: number; // 1..5
+  ticks: Record<string, boolean>; // dateKey -> ticked
+};
+
 export type ToBooState = {
   schemaVersion: 2;
   verticals: Vertical[];
@@ -60,4 +67,5 @@ export type ToBooState = {
   todaysPickedAt: number | null;
   dailyHistory: DailySnapshot[]; // sorted ascending by date; trimmed to last 400
   streakThreshold: number; // percent — default 10
+  habits: Habit[];
 };
