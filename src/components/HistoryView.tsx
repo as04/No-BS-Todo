@@ -1,9 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useToBooStore } from '../store/useToBooStore';
 import { localDateKey } from '../lib/dates';
 import { COLOR_DOT } from '../lib/colors';
-import { dailyEffortBars, weeklyEffortBars } from '../lib/charts';
-import { SimpleBarChart } from './SimpleBarChart';
+import { CalendarHeatmap } from './CalendarHeatmap';
 import type { Note, DailySnapshot } from '../types';
 
 type DayBucket = {
@@ -26,26 +25,20 @@ export function HistoryView() {
   const dailyHistory = useToBooStore((s) => s.dailyHistory);
   const notes = useToBooStore((s) => s.notes);
   const categories = useToBooStore((s) => s.categories);
-  const [chartMode, setChartMode] = useState<'daily' | 'weekly'>('daily');
-
-  const bars = useMemo(
-    () =>
-      chartMode === 'daily'
-        ? dailyEffortBars(dailyHistory, 30)
-        : weeklyEffortBars(dailyHistory, 12),
-    [dailyHistory, chartMode]
-  );
-
-  // Scale the bars to the visible max, with a small floor so an idle period
-  // doesn't make a single update fill the whole chart.
-  const maxValue = useMemo(() => {
-    const m = bars.reduce((acc, b) => Math.max(acc, b.value), 0);
-    return Math.max(m, chartMode === 'daily' ? 3 : 10);
-  }, [bars, chartMode]);
 
   const catById = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
     [categories]
+  );
+
+  const totalUpdates = useMemo(
+    () => dailyHistory.reduce((acc, s) => acc + s.notesTouched, 0),
+    [dailyHistory]
+  );
+
+  const activeDays = useMemo(
+    () => dailyHistory.filter((s) => s.notesTouched > 0).length,
+    [dailyHistory]
   );
 
   const buckets = useMemo<DayBucket[]>(() => {
@@ -65,8 +58,6 @@ export function HistoryView() {
     );
   }, [dailyHistory, notes]);
 
-  const hasAnyActivity = bars.some((b) => b.hasData && b.value > 0);
-
   return (
     <div className="max-w-3xl mx-auto px-6 pb-24 space-y-4">
       <header className="flex items-baseline justify-between gap-3">
@@ -80,48 +71,31 @@ export function HistoryView() {
       </header>
 
       <div className="bg-white/70 rounded-lg p-4 shadow-sticky space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-baseline justify-between gap-3">
           <h3 className="font-hand text-lg leading-none">
             how busy you've been
           </h3>
-          <div className="inline-flex bg-paper/70 rounded-full p-0.5 border border-black/10">
-            <button
-              onClick={() => setChartMode('daily')}
-              className={`text-xs px-3 py-1 rounded-full transition ${
-                chartMode === 'daily'
-                  ? 'bg-ink text-paper'
-                  : 'text-ink/70 hover:text-ink'
-              }`}
-            >
-              daily · 30d
-            </button>
-            <button
-              onClick={() => setChartMode('weekly')}
-              className={`text-xs px-3 py-1 rounded-full transition ${
-                chartMode === 'weekly'
-                  ? 'bg-ink text-paper'
-                  : 'text-ink/70 hover:text-ink'
-              }`}
-            >
-              weekly · 12w
-            </button>
-          </div>
+          <p className="text-xs text-ink/60 whitespace-nowrap">
+            <strong>{totalUpdates}</strong> updates ·{' '}
+            <strong>{activeDays}</strong> active day
+            {activeDays === 1 ? '' : 's'}
+          </p>
         </div>
-        <SimpleBarChart bars={bars} maxValue={maxValue} hideThreshold />
-        <p className="text-xs text-ink/50">
-          {hasAnyActivity ? (
-            <>
-              counts every progress change, checklist tick, weight tweak —
-              i.e. how much you poked at your notes.
-            </>
-          ) : (
-            <>
-              empty for now — touch any note (tick a checklist item, bump a
-              counter, edit a description) and today's bar will start
-              filling.
-            </>
-          )}
-        </p>
+        <CalendarHeatmap history={dailyHistory} weeks={52} />
+        <div className="flex items-center justify-between text-xs text-ink/50">
+          <span>
+            each square = one day, darker = more note interactions
+          </span>
+          <span className="inline-flex items-center gap-1">
+            less
+            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-black/10" />
+            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-ink/25" />
+            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-ink/45" />
+            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-ink/65" />
+            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-ink/85" />
+            more
+          </span>
+        </div>
       </div>
 
       {buckets.length === 0 ? (
