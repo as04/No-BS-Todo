@@ -4,6 +4,7 @@ import { MorningPicker } from './components/MorningPicker';
 import { NoteGrid } from './components/NoteGrid';
 import { AddNoteForm } from './components/AddNoteForm';
 import { CategoryManager } from './components/CategoryManager';
+import { EveningReview } from './components/EveningReview';
 import { ProgressRing } from './components/ProgressRing';
 import { sortByInProgressFirst, weightedProgress } from './lib/progress';
 import { computeStreak } from './lib/streak';
@@ -19,6 +20,7 @@ export default function App() {
 
   const [showAddNote, setShowAddNote] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
+  const [showEveningReview, setShowEveningReview] = useState(false);
   const [pickerDismissed, setPickerDismissed] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
@@ -95,6 +97,13 @@ export default function App() {
             {showAll ? 'today only' : 'show all'}
           </button>
           <button
+            onClick={() => setShowEveningReview(true)}
+            className="text-xs px-3 py-1.5 rounded-full border border-black/10 bg-white/60 hover:bg-white"
+            title="Evening review"
+          >
+            🌙 review
+          </button>
+          <button
             onClick={() => setShowCategories(true)}
             className="text-xs px-3 py-1.5 rounded-full border border-black/10 bg-white/60 hover:bg-white"
           >
@@ -113,18 +122,22 @@ export default function App() {
         <NoteGrid notes={visibleNotes} categories={categories} />
       </main>
 
-      {(showAddNote || showCategories) && (
+      {(showAddNote || showCategories || showEveningReview) && (
         <div
           className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-10"
           onClick={() => {
             setShowAddNote(false);
             setShowCategories(false);
+            setShowEveningReview(false);
           }}
         >
           <div onClick={(e) => e.stopPropagation()}>
             {showAddNote && <AddNoteForm onClose={() => setShowAddNote(false)} />}
             {showCategories && (
               <CategoryManager onClose={() => setShowCategories(false)} />
+            )}
+            {showEveningReview && (
+              <EveningReview onClose={() => setShowEveningReview(false)} />
             )}
           </div>
         </div>
