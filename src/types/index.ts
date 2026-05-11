@@ -43,6 +43,14 @@ export type Category = {
   verticalId: string;
 };
 
+export type DailySnapshot = {
+  date: string; // YYYY-MM-DD (local)
+  startPercent: number; // weighted % of today's picked notes at start of day
+  endPercent: number; // weighted % at most recent update
+  notesTouched: number; // count of distinct notes whose progress changed today
+  reflection?: string; // filled by Evening Review (Phase 2.4)
+};
+
 export type ToBooState = {
   schemaVersion: 2;
   verticals: Vertical[];
@@ -50,4 +58,6 @@ export type ToBooState = {
   categories: Category[];
   todaysCategoryIds: string[];
   todaysPickedAt: number | null;
+  dailyHistory: DailySnapshot[]; // sorted ascending by date; trimmed to last 400
+  streakThreshold: number; // percent — default 10
 };

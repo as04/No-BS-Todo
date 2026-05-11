@@ -6,6 +6,7 @@ import { AddNoteForm } from './components/AddNoteForm';
 import { CategoryManager } from './components/CategoryManager';
 import { ProgressRing } from './components/ProgressRing';
 import { sortByInProgressFirst, weightedProgress } from './lib/progress';
+import { computeStreak } from './lib/streak';
 
 export default function App() {
   const notes = useToBooStore((s) => s.notes);
@@ -13,6 +14,8 @@ export default function App() {
   const todaysCategoryIds = useToBooStore((s) => s.todaysCategoryIds);
   const todaysPickedAt = useToBooStore((s) => s.todaysPickedAt);
   const resetTodaysPick = useToBooStore((s) => s.resetTodaysPick);
+  const dailyHistory = useToBooStore((s) => s.dailyHistory);
+  const streakThreshold = useToBooStore((s) => s.streakThreshold);
 
   const [showAddNote, setShowAddNote] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
@@ -34,6 +37,10 @@ export default function App() {
   );
 
   const todaysProgress = useMemo(() => weightedProgress(todaysNotes), [todaysNotes]);
+  const streak = useMemo(
+    () => computeStreak(dailyHistory, streakThreshold),
+    [dailyHistory, streakThreshold]
+  );
 
   const visibleNotes = useMemo(() => {
     const filtered = showAll ? notes : todaysNotes;
@@ -73,6 +80,14 @@ export default function App() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {streak > 0 && (
+            <span
+              className="text-xs px-3 py-1.5 rounded-full bg-orange-100 border border-orange-200 text-orange-700"
+              title={`Streak: ${streak} day${streak === 1 ? '' : 's'} above ${streakThreshold}%`}
+            >
+              🔥 {streak}
+            </span>
+          )}
           <button
             onClick={() => setShowAll((v) => !v)}
             className="text-xs px-3 py-1.5 rounded-full border border-black/10 bg-white/60 hover:bg-white"

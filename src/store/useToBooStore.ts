@@ -10,9 +10,14 @@ import type {
   Vertical,
 } from '../types';
 import { loadState, saveState, freshVerticals } from '../lib/storage';
-import { deriveStatus } from '../lib/progress';
+import { deriveStatus, weightedProgress } from '../lib/progress';
+import { localDateKey } from '../lib/dates';
+import type { DailySnapshot } from '../types';
 
 type Actions = {
+  setReflection: (text: string) => void;
+  setStreakThreshold: (n: number) => void;
+
   addVertical: (name: string) => void;
   updateVertical: (id: string, patch: Partial<Omit<Vertical, 'id'>>) => void;
   deleteVertical: (id: string) => void;
@@ -56,6 +61,8 @@ const seed = (): ToBooState => {
     notes: [],
     todaysCategoryIds: [],
     todaysPickedAt: null,
+    dailyHistory: [],
+    streakThreshold: 10,
   };
 };
 
@@ -63,7 +70,15 @@ const initial: ToBooState = loadState() ?? seed();
 
 export const useToBooStore = create<Store>((set, get) => {
   const persist = () => {
-    const { verticals, notes, categories, todaysCategoryIds, todaysPickedAt } = get();
+    const {
+      verticals,
+      notes,
+      categories,
+      todaysCategoryIds,
+      todaysPickedAt,
+      dailyHistory,
+      streakThreshold,
+    } = get();
     saveState({
       schemaVersion: 2,
       verticals,
@@ -71,6 +86,42 @@ export const useToBooStore = create<Store>((set, get) => {
       categories,
       todaysCategoryIds,
       todaysPickedAt,
+      dailyHistory,
+      streakThreshold,
+    });
+  };
+
+  const todaysNotesFor = (state: ToBooState): Note[] =>
+    state.todaysCategoryIds.length === 0
+      ? state.notes
+      : state.notes.filter((n) => state.todaysCategoryIds.includes(n.categoryId));
+
+  const touchTodaysSnapshot = () => {
+    set((s) => {
+      const date = localDateKey();
+      const pct = weightedProgress(todaysNotesFor(s));
+      const existingIdx = s.dailyHistory.findIndex((h) => h.date === date);
+      let history = s.dailyHistory;
+      if (existingIdx === -1) {
+        const fresh: DailySnapshot = {
+          date,
+          startPercent: pct,
+          endPercent: pct,
+          notesTouched: 1,
+        };
+        history = [...history, fresh];
+      } else {
+        const existing = history[existingIdx];
+        const updated: DailySnapshot = {
+          ...existing,
+          endPercent: pct,
+          notesTouched: existing.notesTouched + 1,
+        };
+        history = history.map((h, i) => (i === existingIdx ? updated : h));
+      }
+      // Bound history to last 400 entries (a bit over a year).
+      if (history.length > 400) history = history.slice(history.length - 400);
+      return { dailyHistory: history };
     });
   };
 
@@ -83,6 +134,9 @@ export const useToBooStore = create<Store>((set, get) => {
         return merged;
       }),
     }));
+    // Only progress/weight changes affect the score; trigger snapshot for all
+    // updateNote calls (cheap) — non-progress patches just re-stamp endPercent.
+    touchTodaysSnapshot();
     persist();
   };
 
@@ -208,11 +262,56 @@ export const useToBooStore = create<Store>((set, get) => {
 
     pickTodaysCategories: (ids) => {
       set({ todaysCategoryIds: ids, todaysPickedAt: Date.now() });
+      // Stamp a snapshot for today's start state.
+      set((s) => {
+        const date = localDateKey();
+        if (s.dailyHistory.some((h) => h.date === date)) return s;
+        const pct = weightedProgress(todaysNotesFor(s));
+        const fresh: DailySnapshot = {
+          date,
+          startPercent: pct,
+          endPercent: pct,
+          notesTouched: 0,
+        };
+        return { dailyHistory: [...s.dailyHistory, fresh] };
+      });
       persist();
     },
 
     resetTodaysPick: () => {
       set({ todaysCategoryIds: [], todaysPickedAt: null });
+      persist();
+    },
+
+    setReflection: (text) => {
+      set((s) => {
+        const date = localDateKey();
+        const idx = s.dailyHistory.findIndex((h) => h.date === date);
+        if (idx === -1) {
+          const pct = weightedProgress(todaysNotesFor(s));
+          return {
+            dailyHistory: [
+              ...s.dailyHistory,
+              {
+                date,
+                startPercent: pct,
+                endPercent: pct,
+                notesTouched: 0,
+                reflection: text,
+              },
+            ],
+          };
+        }
+        const next = s.dailyHistory.map((h, i) =>
+          i === idx ? { ...h, reflection: text } : h
+        );
+        return { dailyHistory: next };
+      });
+      persist();
+    },
+
+    setStreakThreshold: (n) => {
+      set({ streakThreshold: Math.max(0, Math.min(100, n)) });
       persist();
     },
   };

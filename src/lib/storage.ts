@@ -29,6 +29,17 @@ function migrateV1ToV2(v1: V1State): ToBooState {
     categories: v1.categories.map((c) => ({ ...c, verticalId: fallbackVerticalId })),
     todaysCategoryIds: v1.todaysCategoryIds,
     todaysPickedAt: v1.todaysPickedAt,
+    dailyHistory: [],
+    streakThreshold: 10,
+  };
+}
+
+function backfillV2(s: ToBooState): ToBooState {
+  // Older saved-v2 states may lack the newer fields. Add defaults non-destructively.
+  return {
+    ...s,
+    dailyHistory: s.dailyHistory ?? [],
+    streakThreshold: s.streakThreshold ?? 10,
   };
 }
 
@@ -37,7 +48,7 @@ export function loadState(): ToBooState | null {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (isV2(parsed)) return parsed;
+    if (isV2(parsed)) return backfillV2(parsed);
     // anything else: treat as v1
     return migrateV1ToV2(parsed as V1State);
   } catch {
