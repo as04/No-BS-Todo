@@ -81,36 +81,29 @@ export function SimpleBarChart({
       {bars.map((b, i) => {
         const x = padding + i * (barWidth + barGap);
         const clamped = Math.max(0, b.value);
-        const h = (clamped / scaleMax) * chartHeight;
+        // No-data bars still get a visible "ghost" silhouette so the chart's
+        // shape is obvious before the user has accumulated any activity.
+        const emptyGhostHeight = chartHeight * 0.08;
+        const h = b.hasData ? (clamped / scaleMax) * chartHeight : emptyGhostHeight;
         let fill: string;
         if (!b.hasData) {
-          fill = 'rgba(0,0,0,0.06)';
+          fill = 'rgba(0,0,0,0.08)';
         } else if (hideThreshold) {
-          fill = 'rgba(43,42,38,0.7)';
+          fill = 'rgba(43,42,38,0.75)';
         } else {
           const passed = clamped >= threshold;
           fill = passed ? 'rgba(43,42,38,0.8)' : 'rgba(0,0,0,0.25)';
         }
         return (
           <g key={i}>
-            {!b.hasData ? (
-              <rect
-                x={x}
-                y={chartBottom - 1}
-                width={barWidth}
-                height={1}
-                fill={fill}
-              />
-            ) : (
-              <rect
-                x={x}
-                y={chartBottom - h}
-                width={barWidth}
-                height={h}
-                fill={fill}
-                rx={1}
-              />
-            )}
+            <rect
+              x={x}
+              y={chartBottom - h}
+              width={barWidth}
+              height={h}
+              fill={fill}
+              rx={1}
+            />
             <title>{b.tooltip}</title>
             <text
               x={x + barWidth / 2}
