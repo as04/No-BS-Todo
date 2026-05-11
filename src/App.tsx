@@ -118,7 +118,14 @@ export default function App() {
             label={`${todaysProgress}% — weighted average of today's notes (high-weight notes count more)`}
           />
           <div>
-            <h1 className="font-hand text-4xl leading-none">ToBoo</h1>
+            <button
+              type="button"
+              onClick={() => setTab('notes')}
+              className="font-hand text-4xl leading-none hover:opacity-80 transition"
+              title="back to notes"
+            >
+              ToBoo
+            </button>
             {todaysCategories.length > 0 && !showAll && (
               <p className="text-xs text-ink/60 mt-1">
                 today's focus: {todaysCategories.map((c) => c.name).join(' · ')}

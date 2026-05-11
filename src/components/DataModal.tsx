@@ -54,8 +54,10 @@ export function DataModal({ onClose }: Props) {
     if (status.kind !== 'preview') return;
     const current = useToBooStore.getState();
     if (safetyBackup) exportJson(current);
-    const merged = mergeStates(current, status.incoming);
-    replaceState(merged);
+    const report = mergeStates(current, status.incoming);
+    replaceState(report.result);
+    const summary = formatMergeReport(report);
+    alert(`Merged.\n\n${summary}`);
     onClose();
   };
 
@@ -64,7 +66,27 @@ export function DataModal({ onClose }: Props) {
     const current = useToBooStore.getState();
     if (safetyBackup) exportJson(current);
     replaceState(status.incoming);
+    alert(
+      `Replaced. Now showing ${status.incoming.notes.length} notes from the file.`
+    );
     onClose();
+  };
+
+  /** Build a human-readable summary of what the merge actually changed. */
+  const formatMergeReport = (r: ReturnType<typeof mergeStates>): string => {
+    const bits: string[] = [];
+    if (r.notesAdded) bits.push(`+${r.notesAdded} notes`);
+    if (r.notesUpdated) bits.push(`${r.notesUpdated} notes updated to a newer version`);
+    if (r.categoriesAdded) bits.push(`+${r.categoriesAdded} categories`);
+    if (r.verticalsAdded) bits.push(`+${r.verticalsAdded} verticals`);
+    if (r.habitsAdded) bits.push(`+${r.habitsAdded} habits`);
+    if (r.daysAdded) bits.push(`+${r.daysAdded} days of history`);
+    if (r.notesRemapped)
+      bits.push(`${r.notesRemapped} notes re-pointed to your existing categories`);
+    if (bits.length === 0) {
+      return 'Nothing was new — the file matched what you already have.';
+    }
+    return bits.join('\n');
   };
 
   return (

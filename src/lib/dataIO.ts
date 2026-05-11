@@ -235,61 +235,190 @@ async function normalizeIncomingState(
 // Merge — non-destructive combination of current + incoming
 // -----------------------------------------------------------------------------
 
+/** Summary of what the merge actually changed — surfaced as a toast. */
+export type MergeReport = {
+  notesAdded: number;
+  notesUpdated: number;
+  categoriesAdded: number;
+  verticalsAdded: number;
+  habitsAdded: number;
+  daysAdded: number;
+  notesRemapped: number;
+  result: ToBooState;
+};
+
 /**
- * Combine `current` and `incoming` without destroying user work. Rules:
+ * Combine `current` and `incoming` without destroying user work.
  *
- * - **Notes**: union by id. On conflict, the one with later `updatedAt` wins.
- *   Notes only in either source are kept.
- * - **Categories / verticals / habits**: union by id. On conflict, `current`
- *   wins (we don't have updatedAt on these, and the user's current naming
- *   is probably what they want now). Habit `ticks` maps are merged (a tick
- *   in either source counts as ticked).
+ * Vertical / category merge has a fix for the seed-id problem: when the
+ * incoming side has a vertical or category with a *new id but identical
+ * name*, we keep the current id and remap any incoming notes that
+ * referenced the duplicate. That prevents the "I imported a backup and
+ * now have two 'Career' verticals" surprise.
+ *
+ * Rules:
+ * - **Verticals**: dedupe by id, then by name (case-insensitive). Current
+ *   wins on conflict.
+ * - **Categories**: dedupe by id, then by `(verticalId, name)`. Current
+ *   wins on conflict. Notes whose `categoryId` referred to the duplicated
+ *   incoming category get remapped to the current id.
+ * - **Notes**: union by id. On conflict, the one with later `updatedAt`
+ *   wins.
+ * - **Habits**: union by id, ticks unioned.
  * - **dailyHistory**: union by date. On same-date conflicts we take the
  *   higher endPercent, the lower startPercent, the higher notesTouched,
  *   and prefer a non-empty reflection.
  * - **todaysCategoryIds / todaysPickedAt / streakThreshold / viewPrefs /
- *   schemaVersion**: `current` wins (these are session-scoped preferences,
- *   not history the user wants to recover).
+ *   schemaVersion**: `current` wins (session-scoped preferences).
  */
 export function mergeStates(
   current: ToBooState,
   incoming: ToBooState
-): ToBooState {
+): MergeReport {
+  // 1. Verticals
+  const verticalRemap = buildNameRemap(
+    current.verticals,
+    incoming.verticals,
+    (v) => v.name.trim().toLowerCase()
+  );
+  const verticals = unionByIdPreserving(
+    current.verticals,
+    incoming.verticals,
+    verticalRemap
+  );
+  const verticalsAdded = verticals.length - current.verticals.length;
+
+  // 2. Categories — apply vertical remap to incoming before deduping, so
+  // categories pointing at a remapped vertical compare correctly.
+  const incomingCategories = incoming.categories.map((c) => ({
+    ...c,
+    verticalId: verticalRemap.get(c.verticalId) ?? c.verticalId,
+  }));
+  const categoryRemap = buildNameRemap(
+    current.categories,
+    incomingCategories,
+    (c) => `${c.verticalId}|${c.name.trim().toLowerCase()}`
+  );
+  const categories = unionByIdPreserving(
+    current.categories,
+    incomingCategories,
+    categoryRemap
+  );
+  const categoriesAdded = categories.length - current.categories.length;
+
+  // 3. Notes — apply category remap to incoming so reassigned notes land in
+  // the existing category instead of an orphaned one.
+  const incomingNotes = incoming.notes.map((n) => ({
+    ...n,
+    categoryId:
+      n.categoryId === null
+        ? null
+        : (categoryRemap.get(n.categoryId) ?? n.categoryId),
+  }));
+  const { merged: notes, added: notesAdded, updated: notesUpdated } =
+    mergeNotesByUpdatedAt(current.notes, incomingNotes);
+  const notesRemapped = incomingNotes.filter(
+    (n, i) => n.categoryId !== incoming.notes[i].categoryId
+  ).length;
+
+  // 4. Habits
+  const habits = mergeHabits(current.habits, incoming.habits);
+  const habitsAdded = habits.length - current.habits.length;
+
+  // 5. Daily history
+  const dailyHistory = mergeDailyHistory(
+    current.dailyHistory,
+    incoming.dailyHistory
+  );
+  const daysAdded = dailyHistory.length - current.dailyHistory.length;
+
   return {
-    schemaVersion: current.schemaVersion,
-    verticals: mergeById(current.verticals, incoming.verticals),
-    categories: mergeById(current.categories, incoming.categories),
-    notes: mergeNotesByUpdatedAt(current.notes, incoming.notes),
-    todaysCategoryIds: current.todaysCategoryIds,
-    todaysPickedAt: current.todaysPickedAt,
-    dailyHistory: mergeDailyHistory(
-      current.dailyHistory,
-      incoming.dailyHistory
-    ),
-    streakThreshold: current.streakThreshold,
-    habits: mergeHabits(current.habits, incoming.habits),
-    viewPrefs: current.viewPrefs,
+    notesAdded,
+    notesUpdated,
+    categoriesAdded,
+    verticalsAdded,
+    habitsAdded,
+    daysAdded,
+    notesRemapped,
+    result: {
+      schemaVersion: current.schemaVersion,
+      verticals,
+      categories,
+      notes,
+      todaysCategoryIds: current.todaysCategoryIds,
+      todaysPickedAt: current.todaysPickedAt,
+      dailyHistory,
+      streakThreshold: current.streakThreshold,
+      habits,
+      viewPrefs: current.viewPrefs,
+    },
   };
 }
 
-/** Generic id-keyed merge where `current` wins on conflict. */
-function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {
-  const seen = new Set(current.map((c) => c.id));
-  return [
-    ...current,
-    ...incoming.filter((i) => !seen.has(i.id)),
-  ];
+/**
+ * Build a map from "incoming id" to "current id" for items where the names
+ * (per `keyFn`) match. Lets us treat duplicate-by-name as duplicate-by-id
+ * during the merge so seed-generated nanoid collisions don't cause dupes.
+ */
+function buildNameRemap<T extends { id: string }>(
+  current: T[],
+  incoming: T[],
+  keyFn: (t: T) => string
+): Map<string, string> {
+  const currentByKey = new Map<string, string>();
+  for (const c of current) currentByKey.set(keyFn(c), c.id);
+  const remap = new Map<string, string>();
+  for (const i of incoming) {
+    const matchId = currentByKey.get(keyFn(i));
+    if (matchId && matchId !== i.id) remap.set(i.id, matchId);
+  }
+  return remap;
 }
 
-/** Notes merge — newest updatedAt wins per id. */
-function mergeNotesByUpdatedAt(current: Note[], incoming: Note[]): Note[] {
+/**
+ * Union of `current` and `incoming` by id, with current winning on
+ * conflict. Any incoming entry whose id is in `remap` is treated as
+ * already-present (its data was already in `current`).
+ */
+function unionByIdPreserving<T extends { id: string }>(
+  current: T[],
+  incoming: T[],
+  remap: Map<string, string>
+): T[] {
+  const seenIds = new Set(current.map((c) => c.id));
+  const out = [...current];
+  for (const i of incoming) {
+    if (seenIds.has(i.id) || remap.has(i.id)) continue;
+    out.push(i);
+    seenIds.add(i.id);
+  }
+  return out;
+}
+
+/**
+ * Notes merge — newest updatedAt wins per id. Reports how many were
+ * brand-new vs. overwritten by a newer incoming version, so the UI can
+ * tell the user what just happened.
+ */
+function mergeNotesByUpdatedAt(
+  current: Note[],
+  incoming: Note[]
+): { merged: Note[]; added: number; updated: number } {
   const byId = new Map<string, Note>();
   for (const n of current) byId.set(n.id, n);
+  let added = 0;
+  let updated = 0;
   for (const n of incoming) {
     const existing = byId.get(n.id);
-    if (!existing || n.updatedAt > existing.updatedAt) byId.set(n.id, n);
+    if (!existing) {
+      byId.set(n.id, n);
+      added += 1;
+    } else if (n.updatedAt > existing.updatedAt) {
+      byId.set(n.id, n);
+      updated += 1;
+    }
   }
-  return Array.from(byId.values());
+  return { merged: Array.from(byId.values()), added, updated };
 }
 
 /** Habits merge — current's metadata wins; ticks are unioned. */
