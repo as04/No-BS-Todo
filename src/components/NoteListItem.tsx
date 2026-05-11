@@ -46,6 +46,19 @@ export function NoteListItem({ note, category }: Props) {
             {category ? category.name : 'uncategorized'}
           </span>
         </span>
+        <span
+          className="hidden sm:flex items-center gap-0.5 opacity-60"
+          title={`weight ${note.weight}/5`}
+        >
+          {[1, 2, 3, 4, 5].map((n) => (
+            <span
+              key={n}
+              className={`w-1 h-1 rounded-full ${
+                n <= (note.weight ?? 3) ? 'bg-ink/70' : 'bg-black/15'
+              }`}
+            />
+          ))}
+        </span>
         <span className="w-32 hidden sm:block">
           <ProgressBar percent={pct} />
         </span>

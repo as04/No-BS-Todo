@@ -61,6 +61,19 @@ export function StickyNote({ note, category }: Props) {
           <ProgressBar percent={pct} />
           <span className="text-xs text-ink/70 w-9 text-right">{pct}%</span>
         </div>
+        <div
+          className="mt-1.5 flex items-center gap-0.5 opacity-60"
+          title={`weight ${note.weight}/5 — high weight pulls the daily ring more`}
+        >
+          {[1, 2, 3, 4, 5].map((n) => (
+            <span
+              key={n}
+              className={`w-1.5 h-1.5 rounded-full ${
+                n <= (note.weight ?? 3) ? 'bg-ink/70' : 'bg-black/15'
+              }`}
+            />
+          ))}
+        </div>
       </button>
 
       {expanded && (

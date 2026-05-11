@@ -31,6 +31,7 @@ export default function App() {
   const resetTodaysPick = useToBooStore((s) => s.resetTodaysPick);
   const dailyHistory = useToBooStore((s) => s.dailyHistory);
   const streakThreshold = useToBooStore((s) => s.streakThreshold);
+  const setStreakThreshold = useToBooStore((s) => s.setStreakThreshold);
   const viewPrefs = useToBooStore((s) => s.viewPrefs);
   const setViewPrefs = useToBooStore((s) => s.setViewPrefs);
 
@@ -110,7 +111,10 @@ export default function App() {
     <div className="min-h-screen">
       <header className="px-6 pt-8 pb-4 flex items-center justify-between max-w-6xl mx-auto">
         <div className="flex items-center gap-4">
-          <ProgressRing percent={todaysProgress} label={`${todaysProgress}% across today's notes`} />
+          <ProgressRing
+            percent={todaysProgress}
+            label={`${todaysProgress}% — weighted average of today's notes (high-weight notes count more)`}
+          />
           <div>
             <h1 className="font-hand text-4xl leading-none">ToBoo</h1>
             {todaysCategories.length > 0 && !showAll && (
@@ -157,12 +161,21 @@ export default function App() {
             </button>
           </div>
           {streak > 0 && (
-            <span
-              className="text-xs px-3 py-1.5 rounded-full bg-orange-100 border border-orange-200 text-orange-700"
-              title={`Streak: ${streak} day${streak === 1 ? '' : 's'} above ${streakThreshold}%`}
+            <button
+              onClick={() => {
+                const next = prompt(
+                  `Streak counts consecutive days where your daily progress ring reaches at least N%. Current N = ${streakThreshold}.\n\nSet a new threshold (0-100):`,
+                  String(streakThreshold)
+                );
+                if (next === null) return;
+                const n = parseInt(next, 10);
+                if (!isNaN(n)) setStreakThreshold(n);
+              }}
+              className="text-xs px-3 py-1.5 rounded-full bg-orange-100 border border-orange-200 text-orange-700 hover:bg-orange-200"
+              title={`🔥 ${streak} day${streak === 1 ? '' : 's'} in a row above ${streakThreshold}%. Click to change the threshold.`}
             >
               🔥 {streak}
-            </span>
+            </button>
           )}
           {tab === 'notes' && (
             <>
