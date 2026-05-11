@@ -2,6 +2,17 @@ import { useMemo } from 'react';
 import type { DailySnapshot } from '../types';
 import { localDateKey, previousDateKey } from '../lib/dates';
 
+/** Width and height of one day square, in SVG user units. */
+const CELL_SIZE = 11;
+/** Gap between adjacent day squares, in SVG user units. */
+const CELL_GAP = 3;
+/** Center-to-center distance between adjacent squares (size + gap). */
+const CELL_STEP = CELL_SIZE + CELL_GAP;
+/** Horizontal space reserved on the left for weekday labels (M / W / F). */
+const LEFT_GUTTER = 22;
+/** Vertical space reserved at the top for month labels. */
+const TOP_GUTTER = 14;
+
 type Props = {
   history: DailySnapshot[];
   /** How many weeks to show, ending on this week. Default 52. */
@@ -9,28 +20,22 @@ type Props = {
 };
 
 /**
- * GitHub-contributions-style calendar heatmap. Each square = one day,
+ * GitHub-contributions-style calendar heatmap. Each square is one day,
  * laid out in week columns (Monday at the top, Sunday at the bottom).
- * Intensity reflects {@link DailySnapshot.notesTouched} — the same
- * "effort" metric the bar chart used to show, but the grid layout stays
- * legible even with very sparse data.
+ * Square intensity reflects {@link DailySnapshot.notesTouched} — the same
+ * "effort" metric the old bar chart showed, but the grid stays legible
+ * even with very sparse data because empty days still claim a square.
  *
  * Hover any square for a tooltip with the date and exact count.
  */
 export function CalendarHeatmap({ history, weeks = 52 }: Props) {
   const grid = useMemo(() => buildGrid(history, weeks), [history, weeks]);
 
-  // SVG geometry
-  const cellSize = 11;
-  const cellGap = 3;
-  const cellStep = cellSize + cellGap;
-  const leftGutter = 22; // room for "Mon / Wed / Fri" labels
-  const topGutter = 14; // room for month labels
-  const width = leftGutter + grid.weekKeys.length * cellStep;
-  const height = topGutter + 7 * cellStep;
+  const width = LEFT_GUTTER + grid.weekKeys.length * CELL_STEP;
+  const height = TOP_GUTTER + 7 * CELL_STEP;
 
-  // Compute a color scale from the visible data. Five buckets:
-  //   0 = empty (light gray), 1..max scaled across four ink tints.
+  // Five-step intensity scale, anchored to the visible maximum so a quiet
+  // user still gets useful contrast.
   const maxCount = grid.cells.reduce(
     (acc, c) => (c.count > acc ? c.count : acc),
     0
@@ -52,19 +57,18 @@ export function CalendarHeatmap({ history, weeks = 52 }: Props) {
       role="img"
       aria-label="calendar heatmap of note activity"
     >
-      {/* Weekday labels — only Mon / Wed / Fri to keep it light */}
+      {/* Weekday labels — only M / W / F to keep the gutter light. */}
       <g fill="rgba(0,0,0,0.4)" fontSize={8}>
-        <text x={0} y={topGutter + cellStep * 0 + cellSize - 1}>M</text>
-        <text x={0} y={topGutter + cellStep * 2 + cellSize - 1}>W</text>
-        <text x={0} y={topGutter + cellStep * 4 + cellSize - 1}>F</text>
+        <text x={0} y={TOP_GUTTER + CELL_STEP * 0 + CELL_SIZE - 1}>M</text>
+        <text x={0} y={TOP_GUTTER + CELL_STEP * 2 + CELL_SIZE - 1}>W</text>
+        <text x={0} y={TOP_GUTTER + CELL_STEP * 4 + CELL_SIZE - 1}>F</text>
       </g>
 
-      {/* Month labels above */}
       {grid.monthLabels.map((m) => (
         <text
           key={`${m.label}-${m.x}`}
-          x={leftGutter + m.x}
-          y={topGutter - 4}
+          x={LEFT_GUTTER + m.x}
+          y={TOP_GUTTER - 4}
           fontSize={8}
           fill="rgba(0,0,0,0.45)"
         >
@@ -72,14 +76,13 @@ export function CalendarHeatmap({ history, weeks = 52 }: Props) {
         </text>
       ))}
 
-      {/* Day squares */}
       {grid.cells.map((c) => (
         <g key={c.dateKey}>
           <rect
-            x={leftGutter + c.col * cellStep}
-            y={topGutter + c.row * cellStep}
-            width={cellSize}
-            height={cellSize}
+            x={LEFT_GUTTER + c.col * CELL_STEP}
+            y={TOP_GUTTER + c.row * CELL_STEP}
+            width={CELL_SIZE}
+            height={CELL_SIZE}
             rx={2}
             fill={colorFor(c.count)}
           />
@@ -90,20 +93,32 @@ export function CalendarHeatmap({ history, weeks = 52 }: Props) {
   );
 }
 
+/** One day-square in the heatmap. */
 type Cell = {
+  /** YYYY-MM-DD date key this square represents. */
   dateKey: string;
-  /** 0..6 = Mon..Sun row index. */
+  /** 0..6 — row index within a week column (0 = Mon, 6 = Sun). */
   row: number;
-  /** 0..N week-column index, leftmost = oldest. */
+  /** 0..N − 1 — week column index (leftmost = oldest). */
   col: number;
-  /** Effort count for this day (0 when no snapshot). */
+  /** {@link DailySnapshot.notesTouched} for this day, or 0 if no snapshot. */
   count: number;
+  /** Native `<title>` text shown on hover. */
   tooltip: string;
 };
 
-type MonthLabel = { label: string; x: number };
+/** A month abbreviation positioned above its first week column. */
+type MonthLabel = {
+  label: string;
+  /** X offset relative to the first day-column (not including LEFT_GUTTER). */
+  x: number;
+};
 
-/** Compute the Monday of the week containing `key` and return its date key. */
+/**
+ * Returns the Monday of the week containing `key` as its own YYYY-MM-DD
+ * date key. Used as the "anchor" we walk backwards from when laying out
+ * week columns oldest-to-newest.
+ */
 function mondayOf(key: string): string {
   const [y, m, d] = key.split('-').map(Number);
   const dt = new Date(y, m - 1, d);
@@ -112,14 +127,18 @@ function mondayOf(key: string): string {
   return localDateKey(dt.getTime());
 }
 
-/** Build the grid + month labels for `weeks` weeks ending this week. */
+/**
+ * Build the full grid of cells + month-label positions for `weeks` weeks
+ * ending this week (oldest column first).
+ */
 function buildGrid(
   history: DailySnapshot[],
   weeks: number
 ): { cells: Cell[]; weekKeys: string[]; monthLabels: MonthLabel[] } {
   const byDate = new Map(history.map((h) => [h.date, h]));
 
-  // Walk back N weeks of Mondays from this week's Monday.
+  // Walk back N weeks of Mondays from this week's Monday, then reverse so
+  // index 0 is the oldest week.
   const weekKeys: string[] = [];
   let cursor = mondayOf(localDateKey());
   for (let i = 0; i < weeks; i++) {
@@ -135,14 +154,15 @@ function buildGrid(
   let lastMonth = -1;
 
   weekKeys.forEach((monday, colIdx) => {
-    // Month label whenever the current week's Monday crosses into a new month.
+    // Drop a month label whenever the current week's Monday crosses into
+    // a new calendar month.
     const [my, mm] = monday.split('-').map(Number);
     if (mm - 1 !== lastMonth) {
       lastMonth = mm - 1;
       const labelDate = new Date(my, mm - 1, 1);
       monthLabels.push({
         label: labelDate.toLocaleDateString(undefined, { month: 'short' }),
-        x: colIdx * (11 + 3),
+        x: colIdx * CELL_STEP,
       });
     }
 

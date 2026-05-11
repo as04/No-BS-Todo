@@ -135,13 +135,17 @@ function dayLabel(dateKey: string): string {
   });
 }
 
-function DayCard({
-  bucket,
-  catById,
-}: {
+type DayCardProps = {
   bucket: DayBucket;
+  /** Pre-built lookup so we don't re-scan the categories array per card. */
   catById: Map<string, { name: string; color: keyof typeof COLOR_DOT }>;
-}) {
+};
+
+/**
+ * One day's card in the Done feed: heading + delta stats + reflection
+ * blockquote (if any) + the notes the user finished that day.
+ */
+function DayCard({ bucket, catById }: DayCardProps) {
   const { date, snap, done } = bucket;
   const delta = snap ? snap.endPercent - snap.startPercent : null;
 
